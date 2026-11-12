@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { formatDuration, formatMoney, STATUS_LABEL } from "@/lib/format";
 import { paymentProvider, syncMercadoPagoPayment } from "@/lib/payments";
-import { brandStyle } from "@/lib/shop";
+import { SHOP_SLUG, brandStyle } from "@/lib/shop";
 import { formatDate, timeInTz } from "@/lib/time";
 import { waLink } from "@/lib/whatsapp";
 import { WhatsAppIcon, cn } from "@/components/ui";
@@ -12,14 +12,14 @@ import { WhatsAppIcon, cn } from "@/components/ui";
 export const metadata: Metadata = { title: "Seu agendamento", robots: { index: false } };
 
 type Props = {
-  params: Promise<{ slug: string; token: string }>;
+  params: Promise<{ token: string }>;
   searchParams: Promise<{ payment_id?: string; collection_id?: string }>;
 };
 
 const gcalDate = (d: Date) => d.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
 
 export default async function AppointmentPage({ params, searchParams }: Props) {
-  const { slug, token } = await params;
+  const { token } = await params;
   const sp = await searchParams;
 
   // Retorno do Mercado Pago: sincroniza o status sem depender só do webhook
@@ -42,7 +42,7 @@ export default async function AppointmentPage({ params, searchParams }: Props) {
       payments: { orderBy: { createdAt: "desc" } },
     },
   });
-  if (!appt || appt.barbershop.slug !== slug) notFound();
+  if (!appt || appt.barbershop.slug !== SHOP_SLUG) notFound();
 
   // reserva vencida sem pagamento: libera o horário
   if (appt.status === "PENDING_PAYMENT" && appt.holdExpiresAt && appt.holdExpiresAt < new Date()) {
@@ -74,9 +74,9 @@ export default async function AppointmentPage({ params, searchParams }: Props) {
   }[appt.status] ?? { icon: "", title: STATUS_LABEL[appt.status] ?? appt.status, text: "" };
 
   return (
-    <div style={brandStyle(shop.primaryColor)} className="min-h-screen bg-[#0d0c0b] px-4 py-10 text-stone-200">
+    <div style={brandStyle(shop.primaryColor)} className="min-h-screen paper px-4 py-10 text-tinta">
       <div className="mx-auto max-w-lg">
-        <Link href={`/${shop.slug}`} className="font-display text-xl tracking-wide text-white">
+        <Link href="/" className="font-display text-xl text-oliva">
           {shop.name}
         </Link>
 
@@ -84,35 +84,35 @@ export default async function AppointmentPage({ params, searchParams }: Props) {
           <span
             className={cn(
               "mx-auto flex size-16 items-center justify-center rounded-full text-3xl font-semibold",
-              ok ? "bg-brand text-brand-ink" : appt.status === "PENDING_PAYMENT" ? "bg-amber-400/20 text-amber-300" : "bg-white/10 text-stone-300",
+              ok ? "bg-oliva text-creme" : appt.status === "PENDING_PAYMENT" ? "bg-amber-100 text-amber-800" : "bg-tinta/10 text-tinta/70",
             )}
           >
             {header.icon}
           </span>
-          <h1 className="mt-5 font-display text-5xl text-white">{header.title}</h1>
-          <p className="mt-2 text-stone-400">{header.text}</p>
+          <h1 className="mt-5 font-display text-4xl text-oliva sm:text-5xl">{header.title}</h1>
+          <p className="mt-2 text-tinta/60">{header.text}</p>
         </div>
 
-        <div className="mt-8 overflow-hidden rounded-2xl border border-white/10">
-          <dl className="divide-y divide-white/5 text-sm">
+        <div className="mt-8 overflow-hidden rounded-2xl border border-tinta/15 bg-white">
+          <dl className="divide-y divide-tinta/10 text-sm">
             <Row label="Serviço" value={`${appt.service.name} · ${formatDuration(appt.service.durationMinutes)}`} />
             <Row label="Barbeiro" value={appt.professional.name} />
             <Row label="Quando" value={when} />
             <Row label="Onde" value={[shop.address, shop.neighborhood].filter(Boolean).join(" · ")} />
           </dl>
-          <div className="space-y-1.5 bg-white/[0.03] p-4 text-sm">
+          <div className="space-y-1.5 bg-oliva/5 p-4 text-sm">
             <div className="flex justify-between">
-              <span className="text-stone-400">Valor</span>
+              <span className="text-tinta/60">Valor</span>
               <span>{formatMoney(appt.priceCents)}</span>
             </div>
             {appt.paidCents > 0 && (
-              <div className="flex justify-between text-emerald-300">
+              <div className="flex justify-between text-emerald-700">
                 <span>Pago online</span>
                 <span>− {formatMoney(appt.paidCents)}</span>
               </div>
             )}
             {ok && (
-              <div className="flex justify-between font-medium text-white">
+              <div className="flex justify-between font-medium text-tinta">
                 <span>{remaining ? "A pagar na barbearia" : "Tudo pago"}</span>
                 <span>{remaining ? formatMoney(remaining) : "✓"}</span>
               </div>
@@ -127,7 +127,7 @@ export default async function AppointmentPage({ params, searchParams }: Props) {
             </a>
           )}
           {(appt.status === "EXPIRED" || appt.status === "CANCELLED" || appt.status === "NO_SHOW") && (
-            <Link href={`/${shop.slug}/agendar?servico=${appt.serviceId}`} className="rounded-full bg-brand py-3.5 text-center font-semibold text-brand-ink">
+            <Link href={`/agendar?servico=${appt.serviceId}`} className="rounded-full bg-brand py-3.5 text-center font-semibold text-brand-ink">
               Escolher novo horário
             </Link>
           )}
@@ -136,7 +136,7 @@ export default async function AppointmentPage({ params, searchParams }: Props) {
               href={gcal.toString()}
               target="_blank"
               rel="noopener noreferrer"
-              className="rounded-full border border-white/15 py-3 text-center font-medium text-white hover:bg-white/5"
+              className="rounded-full border border-tinta/20 py-3 text-center font-medium text-tinta hover:bg-white"
             >
               Adicionar à minha agenda
             </a>
@@ -146,20 +146,20 @@ export default async function AppointmentPage({ params, searchParams }: Props) {
               href={waLink(shop.whatsapp, `Olá! Sou ${appt.customer.name}, tenho horário ${when} (${appt.service.name}). `)}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center justify-center gap-2 rounded-full border border-white/15 py-3 font-medium text-white hover:bg-white/5"
+              className="inline-flex items-center justify-center gap-2 rounded-full border border-tinta/20 py-3 font-medium text-tinta hover:bg-white"
             >
               <WhatsAppIcon /> Falar com a barbearia
             </a>
           )}
           {shop.googleMapsUrl && (
-            <a href={shop.googleMapsUrl} target="_blank" rel="noopener noreferrer" className="text-center text-sm text-brand hover:underline">
+            <a href={shop.googleMapsUrl} target="_blank" rel="noopener noreferrer" className="text-center text-sm font-semibold text-oliva hover:underline">
               Ver no mapa
             </a>
           )}
         </div>
 
-        {shop.cancellationPolicy && <p className="mt-8 text-center text-xs text-stone-500">{shop.cancellationPolicy}</p>}
-        <p className="mt-6 text-center text-xs text-stone-600">Guarde este link para consultar seu agendamento.</p>
+        {shop.cancellationPolicy && <p className="mt-8 text-center text-xs text-tinta/50">{shop.cancellationPolicy}</p>}
+        <p className="mt-6 text-center text-xs text-tinta/40">Guarde este link para consultar seu agendamento.</p>
       </div>
     </div>
   );
@@ -168,8 +168,8 @@ export default async function AppointmentPage({ params, searchParams }: Props) {
 function Row({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex justify-between gap-4 px-4 py-3">
-      <dt className="text-stone-400">{label}</dt>
-      <dd className="text-right text-white first-letter:uppercase">{value}</dd>
+      <dt className="text-tinta/60">{label}</dt>
+      <dd className="text-right text-tinta first-letter:uppercase">{value}</dd>
     </div>
   );
 }

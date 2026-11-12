@@ -1,24 +1,18 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
-import { brandStyle, getShopBySlug } from "@/lib/shop";
-import { dateKeyInTz } from "@/lib/time";
+import { brandStyle, getShop } from "@/lib/shop";
+import { addDaysToKey, dateKeyInTz, minutesOf, timeInTz, weekdayOf } from "@/lib/time";
 import { BookingWizard } from "./booking-wizard";
 
-type Props = {
-  params: Promise<{ slug: string }>;
-  searchParams: Promise<{ servico?: string; profissional?: string; origem?: string }>;
-};
+export const dynamic = "force-dynamic";
+export const metadata: Metadata = { title: "Agendar horário" };
 
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const shop = await getShopBySlug((await params).slug);
-  return shop ? { title: `Agendar — ${shop.name}` } : {};
-}
+type Props = { searchParams: Promise<{ servico?: string; profissional?: string; origem?: string }> };
 
-export default async function BookingPage({ params, searchParams }: Props) {
-  const { slug } = await params;
+export default async function BookingPage({ searchParams }: Props) {
   const sp = await searchParams;
-  const shop = await getShopBySlug(slug);
+  const shop = await getShop();
   if (!shop) notFound();
 
   const [services, professionals] = await Promise.all([
@@ -34,13 +28,20 @@ export default async function BookingPage({ params, searchParams }: Props) {
     }),
   ]);
 
+  // depois do último horário possível de hoje, o assistente já abre no próximo dia
+  const now = new Date();
+  const todayKey = dateKeyInTz(now, shop.timezone);
+  const nowM = minutesOf(timeInTz(now, shop.timezone)) + shop.minAdvanceMinutes;
+  const todayStillOpen = shop.businessHours.some((h) => h.weekday === weekdayOf(todayKey) && minutesOf(h.closeTime) - 15 > nowM);
+  const firstDateKey = todayStillOpen ? todayKey : addDaysToKey(todayKey, 1);
+
   return (
-    <div style={brandStyle(shop.primaryColor)} className="min-h-screen bg-[#0d0c0b] text-stone-200">
+    <div style={brandStyle(shop.primaryColor)} className="paper min-h-screen text-tinta">
       <BookingWizard
-        slug={shop.slug}
         shopName={shop.name}
         timezone={shop.timezone}
-        todayKey={dateKeyInTz(new Date(), shop.timezone)}
+        todayKey={todayKey}
+        firstDateKey={firstDateKey}
         maxAdvanceDays={shop.maxAdvanceDays}
         paymentMode={shop.paymentMode}
         depositPercent={shop.depositPercent}

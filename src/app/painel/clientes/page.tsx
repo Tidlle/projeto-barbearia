@@ -22,7 +22,7 @@ export default async function CustomersPage({ searchParams }: Props) {
   const counts = Object.fromEntries(
     (Object.keys(SEGMENTS) as Segment[]).map((s) => [s, filterSegment(all, s, shop.timezone).length]),
   ) as Record<Segment, number>;
-  const bookingUrl = appUrl(`/${shop.slug}/agendar`);
+  const bookingUrl = appUrl("/agendar");
 
   // mensagem sugerida conforme o segmento
   const template =
@@ -53,7 +53,7 @@ export default async function CustomersPage({ searchParams }: Props) {
             href={`/painel/clientes?${new URLSearchParams({ ...(sp.q ? { q: sp.q } : {}), ...(s !== "todos" ? { segmento: s } : {}) })}`}
             className={cn(
               "shrink-0 rounded-full px-3 py-1.5 text-sm transition",
-              s === segment ? "bg-stone-900 text-white" : "bg-white text-stone-600 ring-1 ring-stone-200 hover:bg-stone-100",
+              s === segment ? "bg-oliva text-creme" : "bg-white text-stone-600 ring-1 ring-stone-200 hover:bg-stone-100",
             )}
           >
             {SEGMENTS[s]} <span className="ml-1 opacity-60">{counts[s]}</span>
@@ -155,7 +155,7 @@ export default async function CustomersPage({ searchParams }: Props) {
             <h2 className="font-semibold">Importar planilha</h2>
             <p className="mt-1 text-xs text-stone-500">
               CSV com colunas <code>nome</code>, <code>telefone</code> e opcionais <code>email</code>, <code>aniversario</code>, <code>tags</code>,{" "}
-              <code>observacoes</code>. Serve para trazer a base de outro sistema (ex.: Trinks).
+              <code>observacoes</code>. Aceita direto a planilha de clientes exportada pela Trinks (salve como CSV).
             </p>
             <form action={importCustomers} className="mt-3 space-y-3">
               <input type="file" name="file" accept=".csv,text/csv" required className="block w-full text-sm file:mr-3 file:rounded-md file:border-0 file:bg-stone-100 file:px-3 file:py-1.5 file:text-sm" />

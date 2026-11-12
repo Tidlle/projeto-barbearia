@@ -21,7 +21,7 @@ export default async function SettingsPage({ searchParams }: Props) {
       <PageHeader
         title="Configurações"
         description="Dados do site, regras de agendamento e pagamento."
-        actions={<Link href={`/${shop.slug}`} target="_blank" className="text-sm text-stone-600 hover:underline">Ver site ↗</Link>}
+        actions={<Link href="/" target="_blank" className="text-sm text-stone-600 hover:underline">Ver site ↗</Link>}
       />
       <Flash ok={sp.ok} erro={sp.erro} />
 

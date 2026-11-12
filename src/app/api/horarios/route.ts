@@ -1,15 +1,14 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getDaySlots } from "@/lib/availability";
-import { getShopBySlug } from "@/lib/shop";
+import { getShop } from "@/lib/shop";
 import { isValidDateKey } from "@/lib/time";
 
 export const dynamic = "force-dynamic";
 
-// GET /api/{slug}/horarios?servico=ID&profissional=ID&data=YYYY-MM-DD
-export async function GET(req: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
-  const { slug } = await params;
-  const shop = await getShopBySlug(slug);
-  if (!shop) return NextResponse.json({ error: "Barbearia não encontrada" }, { status: 404 });
+// GET /api/horarios?servico=ID&profissional=ID&data=YYYY-MM-DD
+export async function GET(req: NextRequest) {
+  const shop = await getShop();
+  if (!shop) return NextResponse.json({ error: "Barbearia não configurada" }, { status: 404 });
 
   const sp = req.nextUrl.searchParams;
   const serviceId = sp.get("servico");

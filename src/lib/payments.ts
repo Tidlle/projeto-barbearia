@@ -44,7 +44,7 @@ export async function createCheckout(paymentId: string): Promise<string> {
   });
   const { appointment } = payment;
   const shop = appointment.barbershop;
-  const returnUrl = appUrl(`/${shop.slug}/agendamento/${appointment.publicToken}`);
+  const returnUrl = appUrl(`/agendamento/${appointment.publicToken}`);
 
   if (payment.provider === "MOCK") {
     const url = `/pagamento/simulado/${payment.id}`;

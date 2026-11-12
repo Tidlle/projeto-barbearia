@@ -20,7 +20,7 @@ const STEPS: { id: Step; label: string }[] = [
   { id: "dados", label: "Seus dados" },
   { id: "revisao", label: "Confirmar" },
 ];
-const STORAGE_KEY = "navalha:contato";
+const STORAGE_KEY = "zer0nze:contato";
 
 function maskPhone(v: string) {
   const d = v.replace(/\D/g, "").slice(0, 11);
@@ -31,10 +31,11 @@ function maskPhone(v: string) {
 }
 
 export function BookingWizard(props: {
-  slug: string;
   shopName: string;
   timezone: string;
   todayKey: string;
+  /** primeiro dia sugerido (amanhã, se o expediente de hoje já acabou) */
+  firstDateKey: string;
   maxAdvanceDays: number;
   paymentMode: string;
   depositPercent: number;
@@ -92,12 +93,12 @@ export function BookingWizard(props: {
   const dateKey =
     pickedDate && workingWeekdays.has(weekdayOf(pickedDate))
       ? pickedDate
-      : (days.find((d) => workingWeekdays.has(weekdayOf(d))) ?? null);
+      : (days.find((d) => d >= props.firstDateKey && workingWeekdays.has(weekdayOf(d))) ?? null);
 
   // a URL de busca é a chave: quando muda, buscamos de novo; enquanto não chega, está carregando
   const slotsKey =
     serviceId && dateKey && step === "horario"
-      ? `/api/${props.slug}/horarios?${new URLSearchParams({ servico: serviceId, data: dateKey, ...(proId ? { profissional: proId } : {}) })}#${refresh}`
+      ? `/api/horarios?${new URLSearchParams({ servico: serviceId, data: dateKey, ...(proId ? { profissional: proId } : {}) })}#${refresh}`
       : null;
   const slots = fetched && fetched.key === slotsKey ? fetched.slots : null;
   const loadingSlots = !!slotsKey && slots === null;
@@ -131,7 +132,7 @@ export function BookingWizard(props: {
     };
     const p = prev[step];
     if (p) go(p);
-    else router.push(`/${props.slug}`);
+    else router.push("/");
   }
 
   function submitContact(e: React.FormEvent) {
@@ -142,7 +143,7 @@ export function BookingWizard(props: {
       localStorage.setItem(STORAGE_KEY, JSON.stringify({ name: contact.name, phone: contact.phone, email: contact.email, birthday: contact.birthday }));
     } catch {}
     startTransition(async () => {
-      const r = await captureLead({ slug: props.slug, contact, serviceId: serviceId!, startsAt: slot?.startsAt, source: props.source });
+      const r = await captureLead({ contact, serviceId: serviceId!, startsAt: slot?.startsAt, source: props.source });
       if (!r.ok) return setError(r.error);
       go("revisao");
     });
@@ -151,7 +152,6 @@ export function BookingWizard(props: {
   function confirm() {
     startTransition(async () => {
       const r = await createBooking({
-        slug: props.slug,
         serviceId: serviceId!,
         professionalId: proId ?? null,
         startsAt: slot!.startsAt,
@@ -183,10 +183,10 @@ export function BookingWizard(props: {
     <div className="mx-auto flex min-h-screen max-w-2xl flex-col px-4">
       {/* Cabeçalho */}
       <header className="flex h-16 items-center justify-between">
-        <button onClick={back} className="-ml-2 rounded-lg px-2 py-1 text-sm text-stone-400 hover:text-white">
+        <button onClick={back} className="-ml-2 rounded-lg px-2 py-1 text-sm text-tinta/60 hover:text-tinta">
           ← Voltar
         </button>
-        <Link href={`/${props.slug}`} className="font-display text-xl tracking-wide text-white">
+        <Link href="/" className="font-display text-xl text-oliva">
           {props.shopName}
         </Link>
         <span className="w-14" />
@@ -196,8 +196,8 @@ export function BookingWizard(props: {
       <div className="mb-8 flex gap-1.5" aria-label={`Etapa ${stepIndex + 1} de ${STEPS.length}`}>
         {STEPS.map((s, i) => (
           <div key={s.id} className="flex-1">
-            <div className={cn("h-1 rounded-full", i <= stepIndex ? "bg-brand" : "bg-white/10")} />
-            <p className={cn("mt-2 hidden text-[11px] sm:block", i === stepIndex ? "text-white" : "text-stone-500")}>{s.label}</p>
+            <div className={cn("h-1 rounded-full", i <= stepIndex ? "bg-oliva" : "bg-tinta/10")} />
+            <p className={cn("mt-2 hidden text-[11px] sm:block", i === stepIndex ? "text-tinta" : "text-tinta/50")}>{s.label}</p>
           </div>
         ))}
       </div>
@@ -224,15 +224,15 @@ export function BookingWizard(props: {
                   }}
                   className={cn(
                     "flex w-full items-center justify-between gap-4 rounded-2xl border p-4 text-left transition",
-                    s.id === serviceId ? "border-brand bg-brand/10" : "border-white/10 bg-white/[0.02] hover:border-white/25",
+                    s.id === serviceId ? "border-oliva bg-white ring-2 ring-oliva" : "border-tinta/15 bg-white hover:border-oliva/60",
                   )}
                 >
                   <span>
-                    <span className="block font-medium text-white">{s.name}</span>
-                    {s.description && <span className="mt-0.5 block text-sm text-stone-400">{s.description}</span>}
-                    <span className="mt-1 block text-xs text-stone-500">{formatDuration(s.durationMinutes)}</span>
+                    <span className="block font-slab text-lg font-semibold text-tinta">{s.name}</span>
+                    {s.description && <span className="mt-0.5 block text-sm text-tinta/60">{s.description}</span>}
+                    <span className="mt-1 block text-xs text-tinta/50">{formatDuration(s.durationMinutes)}</span>
                   </span>
-                  <span className="shrink-0 font-display text-2xl text-brand">{formatMoney(s.priceCents)}</span>
+                  <span className="shrink-0 font-display text-2xl text-oliva">{formatMoney(s.priceCents)}</span>
                 </button>
               ))}
             </div>
@@ -288,7 +288,7 @@ export function BookingWizard(props: {
                     }}
                     className={cn(
                       "flex w-16 shrink-0 flex-col items-center rounded-2xl border py-3 transition",
-                      active ? "border-brand bg-brand text-brand-ink" : "border-white/10 hover:border-white/30",
+                      active ? "border-oliva bg-oliva text-creme" : "border-tinta/15 hover:border-oliva/60",
                       !open && "cursor-not-allowed opacity-30",
                     )}
                   >
@@ -301,15 +301,15 @@ export function BookingWizard(props: {
             </div>
 
             <div className="mt-6">
-              {loadingSlots && <p className="py-10 text-center text-sm text-stone-500">Buscando horários…</p>}
+              {loadingSlots && <p className="py-10 text-center text-sm text-tinta/50">Buscando horários…</p>}
               {!loadingSlots && slots && slots.length === 0 && (
-                <p className="rounded-2xl border border-dashed border-white/10 py-10 text-center text-sm text-stone-400">
+                <p className="rounded-2xl border border-dashed border-tinta/15 py-10 text-center text-sm text-tinta/60">
                   Sem horários livres neste dia. Tente outro dia{proId ? " ou outro barbeiro" : ""}.
                 </p>
               )}
               {periods.map((p) => (
                 <div key={p.label} className="mb-6">
-                  <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-stone-500">{p.label}</p>
+                  <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-tinta/50">{p.label}</p>
                   <div className="grid grid-cols-4 gap-2 sm:grid-cols-6">
                     {p.items.map((s) => (
                       <button
@@ -317,7 +317,7 @@ export function BookingWizard(props: {
                         onClick={() => setSlot(s)}
                         className={cn(
                           "rounded-xl border py-2.5 text-sm font-medium tabular-nums transition",
-                          slot?.startsAt === s.startsAt ? "border-brand bg-brand text-brand-ink" : "border-white/10 text-white hover:border-white/30",
+                          slot?.startsAt === s.startsAt ? "border-oliva bg-oliva text-creme" : "border-tinta/15 text-tinta hover:border-oliva/60",
                         )}
                       >
                         {s.time}
@@ -371,16 +371,16 @@ export function BookingWizard(props: {
                     type="date"
                     value={contact.birthday}
                     onChange={(e) => setContact({ ...contact, birthday: e.target.value })}
-                    className={cn(darkInput, "[color-scheme:dark]")}
+                    className={cn(darkInput)}
                   />
                 </DarkField>
               </div>
-              <label className="flex items-start gap-3 text-sm text-stone-400">
+              <label className="flex items-start gap-3 text-sm text-tinta/60">
                 <input
                   type="checkbox"
                   checked={contact.consent}
                   onChange={(e) => setContact({ ...contact, consent: e.target.checked })}
-                  className="mt-0.5 size-4 accent-[var(--brand)]"
+                  className="mt-0.5 size-4 accent-[var(--oliva)]"
                 />
                 Quero receber lembretes, novidades e ofertas da {props.shopName} pelo WhatsApp. Posso sair quando quiser.
               </label>
@@ -391,8 +391,8 @@ export function BookingWizard(props: {
         {step === "revisao" && service && slot && (
           <section>
             <StepTitle title="Confira e confirme" />
-            <div className="overflow-hidden rounded-2xl border border-white/10">
-              <dl className="divide-y divide-white/5 text-sm">
+            <div className="overflow-hidden rounded-2xl border border-tinta/15">
+              <dl className="divide-y divide-tinta/10 text-sm">
                 <Row label="Serviço" value={`${service.name} · ${formatDuration(service.durationMinutes)}`} />
                 <Row label="Barbeiro" value={pro?.name ?? "Sem preferência (primeiro livre)"} />
                 <Row
@@ -401,21 +401,21 @@ export function BookingWizard(props: {
                 />
                 <Row label="Cliente" value={`${contact.name} · ${contact.phone}`} />
               </dl>
-              <div className="space-y-2 bg-white/[0.03] p-4 text-sm">
+              <div className="space-y-2 bg-oliva/5 p-4 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-stone-400">Valor do serviço</span>
-                  <span className="text-white">{formatMoney(service.priceCents)}</span>
+                  <span className="text-tinta/60">Valor do serviço</span>
+                  <span className="text-tinta">{formatMoney(service.priceCents)}</span>
                 </div>
                 {due > 0 && (
                   <>
                     <div className="flex justify-between font-medium">
-                      <span className="text-white">{props.paymentMode === "FULL" ? "Pagar agora" : `Sinal agora (${props.depositPercent}%)`}</span>
-                      <span className="text-brand">{formatMoney(due)}</span>
+                      <span className="text-tinta">{props.paymentMode === "FULL" ? "Pagar agora" : `Sinal agora (${props.depositPercent}%)`}</span>
+                      <span className="text-oliva">{formatMoney(due)}</span>
                     </div>
                     {due < service.priceCents && (
                       <div className="flex justify-between">
-                        <span className="text-stone-400">Restante na barbearia</span>
-                        <span className="text-stone-300">{formatMoney(service.priceCents - due)}</span>
+                        <span className="text-tinta/60">Restante na barbearia</span>
+                        <span className="text-tinta/70">{formatMoney(service.priceCents - due)}</span>
                       </div>
                     )}
                   </>
@@ -423,23 +423,23 @@ export function BookingWizard(props: {
               </div>
             </div>
             {due > 0 && (
-              <p className="mt-4 text-sm text-stone-400">
-                Pague por <strong className="text-stone-200">Pix ou cartão</strong>. Seu horário fica reservado por {props.holdMinutes} minutos
+              <p className="mt-4 text-sm text-tinta/60">
+                Pague por <strong className="text-tinta">Pix ou cartão</strong>. Seu horário fica reservado por {props.holdMinutes} minutos
                 enquanto você conclui o pagamento.
               </p>
             )}
-            {props.cancellationPolicy && <p className="mt-3 text-xs text-stone-500">{props.cancellationPolicy}</p>}
+            {props.cancellationPolicy && <p className="mt-3 text-xs text-tinta/50">{props.cancellationPolicy}</p>}
           </section>
         )}
       </main>
 
       {/* Barra inferior */}
       {(step === "horario" || step === "dados" || step === "revisao") && (
-        <div className="fixed inset-x-0 bottom-0 z-20 border-t border-white/10 bg-[#0d0c0b]/95 backdrop-blur">
+        <div className="fixed inset-x-0 bottom-0 z-20 border-t border-tinta/15 bg-creme/95 backdrop-blur">
           <div className="mx-auto flex max-w-2xl items-center justify-between gap-4 px-4 py-3">
             <div className="min-w-0 text-sm">
-              <p className="truncate text-white">{service?.name}</p>
-              <p className="truncate text-stone-400">
+              <p className="truncate text-tinta">{service?.name}</p>
+              <p className="truncate text-tinta/60">
                 {slot
                   ? `${formatDate(new Date(slot.startsAt), props.timezone, { weekday: "short", day: "2-digit", month: "2-digit" })} · ${slot.time}`
                   : "Selecione um horário"}
@@ -468,15 +468,15 @@ export function BookingWizard(props: {
 }
 
 const primaryBtn =
-  "shrink-0 rounded-full bg-brand px-6 py-3 text-sm font-semibold text-brand-ink transition hover:brightness-110 disabled:opacity-40";
+  "shrink-0 rounded-full bg-brand px-6 py-3 font-slab text-sm font-bold uppercase tracking-wider text-brand-ink transition hover:brightness-110 disabled:opacity-40";
 const darkInput =
-  "h-12 w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 text-white placeholder:text-stone-500 focus:border-brand focus:outline-none";
+  "h-12 w-full rounded-xl border border-tinta/15 bg-white px-4 text-tinta placeholder:text-tinta/40 focus:border-oliva focus:ring-2 focus:ring-oliva/20 focus:outline-none";
 
 function StepTitle({ title, subtitle }: { title: string; subtitle?: string }) {
   return (
     <div className="mb-6">
-      <h1 className="font-display text-4xl text-white">{title}</h1>
-      {subtitle && <p className="mt-1 text-sm text-stone-400">{subtitle}</p>}
+      <h1 className="font-display text-3xl text-oliva sm:text-4xl">{title}</h1>
+      {subtitle && <p className="mt-1 text-sm text-tinta/60">{subtitle}</p>}
     </div>
   );
 }
@@ -487,14 +487,14 @@ function ProCard({ name, role, selected, onClick, icon }: { name: string; role: 
       onClick={onClick}
       className={cn(
         "rounded-2xl border p-4 text-left transition",
-        selected ? "border-brand bg-brand/10" : "border-white/10 bg-white/[0.02] hover:border-white/25",
+        selected ? "border-oliva bg-white ring-2 ring-oliva" : "border-tinta/15 bg-white hover:border-oliva/60",
       )}
     >
-      <span className="barber-stripes mb-3 flex size-14 items-center justify-center rounded-full bg-white/[0.04] font-display text-3xl text-white">
+      <span className="barber-stripes mb-3 flex size-14 items-center justify-center rounded-full bg-oliva font-display text-3xl text-creme">
         {icon ?? name.slice(0, 1)}
       </span>
-      <span className="block font-medium text-white">{name}</span>
-      <span className="block text-xs text-stone-400">{role}</span>
+      <span className="block font-medium text-tinta">{name}</span>
+      <span className="block text-xs text-tinta/60">{role}</span>
     </button>
   );
 }
@@ -502,7 +502,7 @@ function ProCard({ name, role, selected, onClick, icon }: { name: string; role: 
 function DarkField({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="block">
-      <span className="mb-1.5 block text-sm text-stone-300">{label}</span>
+      <span className="mb-1.5 block text-sm text-tinta/70">{label}</span>
       {children}
     </label>
   );
@@ -511,8 +511,8 @@ function DarkField({ label, children }: { label: string; children: React.ReactNo
 function Row({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex justify-between gap-4 px-4 py-3">
-      <dt className="text-stone-400">{label}</dt>
-      <dd className="text-right text-white first-letter:uppercase">{value}</dd>
+      <dt className="text-tinta/60">{label}</dt>
+      <dd className="text-right text-tinta first-letter:uppercase">{value}</dd>
     </div>
   );
 }

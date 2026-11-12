@@ -59,7 +59,7 @@ export default async function OverviewPage() {
     const md = c.birthday.toISOString().slice(5, 10);
     return Array.from({ length: 7 }, (_, i) => addDaysToKey(todayKey, i).slice(5, 10)).includes(md);
   });
-  const bookingUrl = appUrl(`/${shop.slug}/agendar`);
+  const bookingUrl = appUrl("/agendar");
 
   return (
     <>
@@ -69,7 +69,7 @@ export default async function OverviewPage() {
         actions={
           <>
             <LinkButton href="/painel/agenda" variant="outline">Abrir agenda</LinkButton>
-            <LinkButton href={`/${shop.slug}`} target="_blank" variant="brand">Ver site ↗</LinkButton>
+            <LinkButton href="/" target="_blank" variant="brand">Ver site ↗</LinkButton>
           </>
         }
       />
@@ -185,7 +185,7 @@ export default async function OverviewPage() {
           <Card className="p-5 text-sm">
             <h2 className="font-semibold">Seu link de agendamento</h2>
             <p className="mt-1 text-stone-500">Coloque na bio do Instagram e no Google. Use <code>?origem=instagram</code> para saber de onde vêm os clientes.</p>
-            <p className="mt-3 break-all rounded-lg bg-stone-100 px-3 py-2 font-mono text-xs">{appUrl(`/${shop.slug}?origem=instagram`)}</p>
+            <p className="mt-3 break-all rounded-lg bg-stone-100 px-3 py-2 font-mono text-xs">{appUrl("/?origem=instagram")}</p>
             <p className="mt-2 text-xs text-stone-400">WhatsApp da barbearia: {formatPhone(shop.whatsapp)}</p>
           </Card>
         </div>

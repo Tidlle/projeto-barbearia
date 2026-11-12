@@ -1,3 +1,12 @@
+/** Decodifica o arquivo: UTF-8 se for válido, senão Windows-1252 (padrão do Excel no Brasil). */
+export function decodeCsv(buf: ArrayBuffer): string {
+  try {
+    return new TextDecoder("utf-8", { fatal: true }).decode(buf);
+  } catch {
+    return new TextDecoder("windows-1252").decode(buf);
+  }
+}
+
 /** CSV simples compatível com Excel brasileiro (separador ";") e padrão (","). */
 export function parseCsv(text: string): Record<string, string>[] {
   const clean = text.replace(/^﻿/, "");

@@ -1,17 +1,19 @@
-# Navalha — agendamento, pagamento e CRM para barbearias
+# Barbearia Zer0nze Co. — site, agendamento e CRM
 
-> "Navalha" é um nome provisório.
+Sistema próprio da **Barbearia Zer0nze Co.** (Rua da Mooca, 4053 · Alto da Mooca · desde 2015), com a identidade visual nova da casa: mostarda, verde-oliva e creme, tipografia de letreiro vintage.
 
-SaaS multi-barbearia. Cada barbearia tem:
+O banco continua preparado para várias barbearias. Para reaproveitar o sistema em outro cliente, troque `SHOP_SLUG` no `.env`.
 
-- **Site próprio** (`/{slug}`) com serviços, equipe, avaliações do Google, horários e contato.
-- **Agendamento online** (`/{slug}/agendar`): serviço → barbeiro (ou "sem preferência") → dia/horário → dados → pagamento.
+O que tem:
+
+- **Site da barbearia** (`/`): tabela de serviços, equipe, a casa (comodidades, Instagram), nota no Google, horários com status "aberto agora", mapa e contatos.
+- **Agendamento online** (`/agendar`): serviço → barbeiro (ou "sem preferência") → dia/horário → dados → pagamento.
 - **Pagamento antecipado** (sinal % ou valor total) via **Mercado Pago** (Pix e cartão). Enquanto o cliente paga, o horário fica reservado por alguns minutos. Sem credenciais, usa um **checkout simulado**.
 - **Captura de leads**: quem informa os dados e não conclui vira lead no CRM, com a origem registrada (`?origem=instagram|google|indicacao|whatsapp`).
 - **Painel do dono** (`/painel`):
   - **Visão geral**: atendimentos do dia, faturamento, leads e taxa de faltas.
   - **Agenda** do dia por barbeiro: concluir, faltou, cancelar, encaixe e bloqueio de horário.
-  - **Clientes**: segmentos (clientes, leads, sumidos, aniversariantes, novos), busca, importação e exportação em CSV.
+  - **Clientes**: segmentos (clientes, leads, sumidos, aniversariantes, novos), busca, exportação em CSV e importação (aceita direto a planilha de clientes exportada pela Trinks, em UTF-8 ou no formato do Excel).
   - **Ficha do cliente**: métricas (visitas, gasto, ticket médio, frequência), linha do tempo, anotações, tags, mensagens prontas de WhatsApp e exclusão para LGPD.
   - **Leads**: funil Novo → Em contato → Perdido, com conversão e origem.
   - **Serviços**, **Equipe** (serviços e escala de cada barbeiro) e **Configurações** (dados do site, política de pagamento, regras da agenda).
@@ -29,7 +31,7 @@ npm run db:seed               # dados de demonstração (Barbearia Zer0nze)
 npm run dev
 ```
 
-- Site da barbearia: http://localhost:3000/zer0nze
+- Site da barbearia: http://localhost:3000
 - Painel: http://localhost:3000/entrar. O usuário de demonstração está no cabeçalho de `prisma/seed.ts`.
 
 `npm run db:seed` **apaga e recria** a barbearia de demonstração.
@@ -55,7 +57,9 @@ src/lib/availability.ts     cálculo de horários livres + checagem de conflito
 src/lib/payments.ts         Mercado Pago / simulado, webhook, aplicação de status
 src/lib/crm.ts              métricas e segmentos de clientes
 src/lib/time.ts             fuso horário da barbearia (sem dependências)
-src/app/[slug]/...          site público, agendamento e confirmação
+src/app/page.tsx            site da barbearia
+src/app/agendar/            assistente de agendamento
+src/app/agendamento/        confirmação do cliente
 src/app/painel/...          painel do dono (todas as ações em painel/actions.ts)
 ```
 

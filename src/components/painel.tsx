@@ -51,10 +51,10 @@ export function HoursEditor({ hours }: { hours: { weekday: number; start: string
 
 export function Stat({ label, value, hint, accent }: { label: string; value: string | number; hint?: string; accent?: boolean }) {
   return (
-    <div className={cn("rounded-xl border p-4", accent ? "border-stone-900 bg-stone-900 text-white" : "border-stone-200 bg-white")}>
-      <p className={cn("text-xs font-medium uppercase tracking-wide", accent ? "text-stone-400" : "text-stone-500")}>{label}</p>
+    <div className={cn("rounded-xl border p-4", accent ? "border-oliva bg-oliva text-creme" : "border-stone-200 bg-white")}>
+      <p className={cn("text-xs font-medium uppercase tracking-wide", accent ? "text-creme/60" : "text-stone-500")}>{label}</p>
       <p className="mt-2 text-2xl font-semibold tabular-nums">{value}</p>
-      {hint && <p className={cn("mt-1 text-xs", accent ? "text-stone-400" : "text-stone-500")}>{hint}</p>}
+      {hint && <p className={cn("mt-1 text-xs", accent ? "text-creme/60" : "text-stone-500")}>{hint}</p>}
     </div>
   );
 }

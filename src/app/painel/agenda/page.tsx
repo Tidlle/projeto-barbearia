@@ -85,7 +85,7 @@ export default async function AgendaPage({ searchParams }: Props) {
   const nowLine = dateKey === todayKey ? minuteOf(now) : null;
 
   const revenue = onGrid.filter((a) => a.status !== "NO_SHOW").reduce((s, a) => s + a.priceCents, 0);
-  const bookingUrl = appUrl(`/${shop.slug}/agendar`);
+  const bookingUrl = appUrl("/agendar");
   const label = formatDateKey(dateKey, { weekday: "long", day: "numeric", month: "long" });
 
   return (

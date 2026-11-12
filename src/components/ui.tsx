@@ -8,7 +8,7 @@ export function cn(...c: (string | false | null | undefined)[]) {
 const buttonBase =
   "inline-flex items-center justify-center gap-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand";
 export const buttonVariants = {
-  primary: "bg-stone-900 text-white hover:bg-stone-700",
+  primary: "bg-oliva text-creme hover:bg-oliva-escuro",
   brand: "bg-brand text-brand-ink hover:brightness-110",
   outline: "border border-stone-300 bg-white text-stone-800 hover:bg-stone-100",
   ghost: "text-stone-700 hover:bg-stone-100",
@@ -106,7 +106,7 @@ export function Avatar({ name, className }: { name: string; className?: string }
   const p = name.trim().split(/\s+/);
   const ini = ((p[0]?.[0] ?? "") + (p.length > 1 ? p[p.length - 1][0] : "")).toUpperCase();
   return (
-    <span className={cn("inline-flex size-9 shrink-0 items-center justify-center rounded-full bg-stone-900 text-xs font-semibold text-brand", className)}>
+    <span className={cn("inline-flex size-9 shrink-0 items-center justify-center rounded-full bg-oliva text-xs font-semibold text-creme", className)}>
       {ini}
     </span>
   );

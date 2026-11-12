@@ -26,6 +26,9 @@ model Barbershop {
   googleRating      Float?
   googleReviewCount Int?
   amenities         String[]
+  paymentMethods    String[]
+  logoUrl           String?
+  foundedYear       Int?
   cancellationPolicy String?
   timezone          String   @default("America/Sao_Paulo")
   primaryColor      String   @default("#d4a017")

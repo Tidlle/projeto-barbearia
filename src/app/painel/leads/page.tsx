@@ -35,7 +35,7 @@ export default async function LeadsPage() {
     db.customer.count({ where: { barbershopId: shop.id, createdAt: { gte: d30 }, leadStatus: "CONVERTED", source: { notIn: ["importado"] } } }),
     db.customer.groupBy({ by: ["source"], where: { barbershopId: shop.id, createdAt: { gte: d30 } }, _count: { _all: true } }),
   ]);
-  const bookingUrl = appUrl(`/${shop.slug}/agendar`);
+  const bookingUrl = appUrl("/agendar");
   const conversion = created30 ? Math.round((converted30 / created30) * 100) : 0;
 
   return (

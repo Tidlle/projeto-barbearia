@@ -6,7 +6,7 @@ import { hasConflict, resolveSlot } from "@/lib/availability";
 import { db } from "@/lib/db";
 import { computeDueOnline, normalizePhone } from "@/lib/format";
 import { createCheckout, mockPaymentsAllowed, paymentProvider } from "@/lib/payments";
-import { getShopBySlug } from "@/lib/shop";
+import { getShop } from "@/lib/shop";
 import { formatWhen, isValidDateKey } from "@/lib/time";
 
 const VALID_SOURCES = new Set(["site", "instagram", "google", "indicacao", "whatsapp"]);
@@ -31,7 +31,6 @@ type ContactInput = z.infer<typeof contactSchema>;
  * desista antes de pagar, o dono vê no CRM quem tentou agendar e o quê.
  */
 export async function captureLead(input: {
-  slug: string;
   contact: ContactInput;
   serviceId: string;
   startsAt?: string;
@@ -42,7 +41,7 @@ export async function captureLead(input: {
   const phone = normalizePhone(parsed.data.phone);
   if (!phone) return { ok: false, error: "WhatsApp inválido. Use DDD + número." };
 
-  const shop = await getShopBySlug(input.slug);
+  const shop = await getShop();
   if (!shop) return { ok: false, error: "Barbearia não encontrada" };
   const service = await db.service.findFirst({ where: { id: input.serviceId, barbershopId: shop.id } });
 
@@ -95,7 +94,6 @@ export type BookingResult =
   | { ok: false; error: string; code?: "SLOT_TAKEN" | "INVALID" | "PAYMENT" };
 
 export async function createBooking(input: {
-  slug: string;
   serviceId: string;
   professionalId: string | null;
   startsAt: string;
@@ -107,7 +105,7 @@ export async function createBooking(input: {
   const phone = normalizePhone(parsed.data.phone);
   if (!phone) return { ok: false, error: "WhatsApp inválido. Use DDD + número.", code: "INVALID" };
 
-  const shop = await getShopBySlug(input.slug);
+  const shop = await getShop();
   if (!shop) return { ok: false, error: "Barbearia não encontrada", code: "INVALID" };
   const startsAt = new Date(input.startsAt);
   if (Number.isNaN(startsAt.getTime())) return { ok: false, error: "Horário inválido", code: "INVALID" };
@@ -197,7 +195,7 @@ export async function createBooking(input: {
     throw e;
   }
 
-  const confirmationUrl = `/${shop.slug}/agendamento/${appointment.publicToken}`;
+  const confirmationUrl = `/agendamento/${appointment.publicToken}`;
   if (!needsPayment) return { ok: true, redirectTo: confirmationUrl };
 
   try {

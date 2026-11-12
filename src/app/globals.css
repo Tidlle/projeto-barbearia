@@ -1,30 +1,47 @@
 @import "tailwindcss";
 
+/* Identidade Zer0nze Co.: mostarda, verde-oliva e creme */
 :root {
-  --brand: #d4a017;
-  --brand-ink: #171204;
+  --brand: #e0a12a; /* mostarda (configurável no painel) */
+  --brand-ink: #1e2015;
+  --oliva: #4e5530;
+  --oliva-escuro: #2c301b;
+  --creme: #f6f1e4;
+  --tinta: #1e2015;
 }
 
 @theme inline {
   --color-brand: var(--brand);
   --color-brand-ink: var(--brand-ink);
+  --color-oliva: var(--oliva);
+  --color-oliva-escuro: var(--oliva-escuro);
+  --color-creme: var(--creme);
+  --color-tinta: var(--tinta);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
   --font-display: var(--font-display);
+  --font-slab: var(--font-slab);
 }
 
 body {
-  background: #fafaf9;
-  color: #1c1917;
+  background: #f7f6f2;
+  color: var(--tinta);
 }
 
-/* Listras de poste de barbeiro, usadas como textura sutil */
+/* Listras diagonais (poste de barbeiro), usadas como textura */
 .barber-stripes {
   background-image: repeating-linear-gradient(
     -45deg,
-    color-mix(in srgb, var(--brand) 14%, transparent) 0 14px,
-    transparent 14px 44px
+    color-mix(in srgb, var(--brand) 16%, transparent) 0 12px,
+    transparent 12px 38px
   );
+}
+
+/* Textura de papel sutil para o creme */
+.paper {
+  background-color: var(--creme);
+  background-image: radial-gradient(color-mix(in srgb, var(--tinta) 5%, transparent) 1px, transparent 1px);
+  background-size: 18px 18px;
 }
 
 .no-scrollbar::-webkit-scrollbar {
@@ -46,4 +63,19 @@ body {
 }
 .animate-fade-up {
   animation: fade-up 0.35s ease-out both;
+}
+
+@keyframes marquee {
+  to {
+    transform: translateX(-50%);
+  }
+}
+.animate-marquee {
+  animation: marquee 40s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-marquee,
+  .animate-fade-up {
+    animation: none;
+  }
 }

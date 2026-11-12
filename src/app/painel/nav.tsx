@@ -26,7 +26,7 @@ export function PainelNav() {
             href={item.href}
             className={cn(
               "flex shrink-0 items-center gap-3 rounded-lg px-3 py-2 text-sm transition",
-              active ? "bg-white/10 text-white" : "text-stone-400 hover:bg-white/5 hover:text-white",
+              active ? "bg-creme/10 text-creme" : "text-creme/60 hover:bg-creme/5 hover:text-creme",
             )}
           >
             <span className={cn("w-4 text-center", active && "text-brand")}>{item.icon}</span>

@@ -13,7 +13,7 @@ async function finish(formData: FormData, status: "APPROVED" | "REJECTED") {
   });
   if (!payment || payment.provider !== "MOCK") throw new Error("Pagamento não encontrado");
   await applyPaymentStatus(id, status, `mock_${Date.now()}`);
-  redirect(`/${payment.appointment.barbershop.slug}/agendamento/${payment.appointment.publicToken}`);
+  redirect(`/agendamento/${payment.appointment.publicToken}`);
 }
 
 export async function approveMockPayment(formData: FormData) {

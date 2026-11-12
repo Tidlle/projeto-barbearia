@@ -59,7 +59,7 @@ export default async function CustomerPage({ params, searchParams }: Props) {
   const favService = mode(done.map((a) => a.service.name));
   const favPro = mode(done.map((a) => a.professional.name));
   const isClient = done.length > 0 || customer.leadStatus === "CONVERTED";
-  const bookingUrl = appUrl(`/${shop.slug}/agendar`);
+  const bookingUrl = appUrl("/agendar");
   const lastStarted = customer.interactions.find((i) => i.type === "BOOKING_STARTED");
 
   const ctx = {

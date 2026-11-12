@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { hasConflict } from "@/lib/availability";
 import { requireUser } from "@/lib/auth";
-import { parseBirthdayLoose, parseCsv } from "@/lib/csv";
+import { decodeCsv, parseBirthdayLoose, parseCsv } from "@/lib/csv";
 import { db } from "@/lib/db";
 import { normalizePhone, parseMoneyToCents, STATUS_LABEL } from "@/lib/format";
 import { formatWhen, isValidDateKey, isValidTime, minutesOf, zonedToUtc } from "@/lib/time";
@@ -16,6 +16,8 @@ const int = (fd: FormData, k: string, min: number, max: number, fallback: number
   const n = Number(str(fd, k));
   return Number.isFinite(n) ? Math.min(max, Math.max(min, Math.round(n))) : fallback;
 };
+/** primeiro valor preenchido entre as colunas aceitas */
+const col = (r: Record<string, string>, ...keys: string[]) => keys.map((k) => r[k]?.trim()).find(Boolean) ?? "";
 const tagsOf = (v: string) => [...new Set(v.split(",").map((t) => t.trim()).filter(Boolean))].slice(0, 15);
 const back = (path: string, params: Record<string, string>) =>
   redirect(`${path}?${new URLSearchParams(params).toString()}`);
@@ -260,23 +262,28 @@ export async function importCustomers(fd: FormData) {
   const file = fd.get("file");
   if (!(file instanceof File) || file.size === 0) back("/painel/clientes", { erro: "Selecione um arquivo CSV." });
   if ((file as File).size > 5_000_000) back("/painel/clientes", { erro: "Arquivo muito grande (máx. 5 MB)." });
-  const rows = parseCsv(await (file as File).text());
+  const rows = parseCsv(decodeCsv(await (file as File).arrayBuffer()));
   let created = 0;
   let updated = 0;
   let skipped = 0;
   for (const r of rows) {
-    const phone = normalizePhone(r.telefone ?? r.celular ?? r.whatsapp ?? r.phone ?? "");
-    const name = r.nome ?? r.name ?? r.cliente ?? "";
+    // aceita a planilha exportada pela Trinks (Nome, Celular, Telefone, E-mail, Data de Nascimento, Observações)
+    // e planilhas simples (nome, telefone, email, aniversario, tags, observacoes)
+    const phone =
+      normalizePhone(col(r, "celular", "telefone_celular", "whatsapp")) ?? normalizePhone(col(r, "telefone", "fone", "phone"));
+    const name = col(r, "nome", "nome_completo", "cliente", "name");
+    const email = col(r, "email", "e-mail", "e_mail") || null;
+    const notes = col(r, "observacoes", "observacao", "obs") || null;
     if (!phone || !name) {
       skipped++;
       continue;
     }
-    const birthday = parseBirthdayLoose(r.aniversario ?? r.data_de_nascimento ?? r.nascimento);
+    const birthday = parseBirthdayLoose(col(r, "aniversario", "data_de_nascimento", "nascimento", "data_nascimento"));
     const existing = await db.customer.findUnique({ where: { barbershopId_phone: { barbershopId: user.barbershopId, phone } } });
     if (existing) {
       await db.customer.update({
         where: { id: existing.id },
-        data: { email: existing.email ?? (r.email || null), birthday: existing.birthday ?? birthday ?? null },
+        data: { email: existing.email ?? email, birthday: existing.birthday ?? birthday ?? null },
       });
       updated++;
     } else {
@@ -285,10 +292,10 @@ export async function importCustomers(fd: FormData) {
           barbershopId: user.barbershopId,
           name,
           phone,
-          email: r.email || null,
+          email,
           birthday: birthday ?? null,
-          tags: tagsOf(r.tags ?? ""),
-          notes: r.observacoes || r.obs || null,
+          tags: tagsOf(col(r, "tags", "etiquetas")),
+          notes,
           source: "importado",
           leadStatus: "CONVERTED",
         },

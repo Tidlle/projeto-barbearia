@@ -30,10 +30,12 @@ async function main() {
   const shop = await db.barbershop.create({
     data: {
       slug: "zer0nze",
-      name: "Barbearia Zer0nze",
-      tagline: "Barbearia clássica com atitude urbana no Alto da Mooca",
+      name: "Barbearia Zer0nze Co.",
+      tagline: "Tradição clássica com atitude urbana de São Paulo",
       description:
-        "Cortes na tesoura e na máquina, barba feita com toalha quente e um ambiente que respira cultura street. Respeito à herança do barbeiro clássico, do jeito de São Paulo.",
+        "A Zer0nze nasceu da mistura entre a barbearia clássica e a cultura street de São Paulo. Corte bem feito, barba alinhada e um ambiente pra quem valoriza estilo e autenticidade.",
+      foundedYear: 2015,
+      paymentMethods: ["Pix", "Crédito", "Débito", "Dinheiro"],
       address: "Rua da Mooca, 4053",
       neighborhood: "Alto da Mooca",
       city: "São Paulo - SP",
@@ -43,10 +45,10 @@ async function main() {
       googleMapsUrl: "https://www.google.com/maps/search/?api=1&query=BARBEARIA+ZER0NZE+ALTO+DA+MOOCA",
       googleRating: 4.9,
       googleReviewCount: 117,
-      amenities: ["Wi-Fi", "Estacionamento grátis", "Bar e lanchonete", "TV", "Acessibilidade", "Atende crianças"],
+      amenities: ["Estacionamento grátis", "Bar e lanchonete", "Wi-Fi", "TV", "Acessibilidade", "Adultos e crianças"],
       cancellationPolicy:
-        "Imprevistos acontecem: se precisar cancelar ou for atrasar, avise com antecedência pelo WhatsApp para não atrasar o próximo cliente. O sinal pago vale para remarcação com até 2h de antecedência.",
-      primaryColor: "#d4a017",
+        "Imprevistos acontecem! Se for atrasar ou precisar cancelar, avise com antecedência pelo WhatsApp — assim a gente não atrasa o próximo cliente nem a agenda da casa.",
+      primaryColor: "#e0a12a",
       paymentMode: "DEPOSIT",
       depositPercent: 30,
       slotIntervalMinutes: 15,
@@ -58,7 +60,7 @@ async function main() {
   await db.user.create({
     data: {
       barbershopId: shop.id,
-      name: "Dono Zer0nze",
+      name: "Equipe Zer0nze",
       email: "dono@zer0nze.local",
       passwordHash: await bcrypt.hash("zer0nze123", 10),
       role: "OWNER",
@@ -72,12 +74,13 @@ async function main() {
   await db.businessHour.createMany({ data: hours.map((h) => ({ ...h, barbershopId: shop.id })) });
 
   const servicesData = [
-    { name: "Corte masculino", durationMinutes: 30, priceCents: 6000, category: "Cabelo", description: "Tesoura e/ou máquina, com acabamento e finalização." },
+    // nomes, preços e durações da tabela pública da barbearia (nov/2026)
+    { name: "Corte masculino", durationMinutes: 30, priceCents: 6000, category: "Cabelo", description: null },
     { name: "Corte raspado uniforme", durationMinutes: 15, priceCents: 3000, category: "Cabelo", description: "Máquina em altura única." },
-    { name: "Barba", durationMinutes: 30, priceCents: 5000, category: "Barba", description: "Toalha quente, navalha e hidratação." },
-    { name: "Bigode", durationMinutes: 10, priceCents: 2000, category: "Barba", description: "Desenho e acabamento do bigode." },
-    { name: "Combo cabelo raspado + barba", durationMinutes: 45, priceCents: 8000, category: "Combos", description: "Raspado uniforme + barba completa." },
-    { name: "Combo cabelo tesoura e máquina + barba", durationMinutes: 60, priceCents: 9000, category: "Combos", description: "O combo completo: corte + barba." },
+    { name: "Barba", durationMinutes: 30, priceCents: 5000, category: "Barba", description: null },
+    { name: "Bigode", durationMinutes: 10, priceCents: 2000, category: "Barba", description: null },
+    { name: "Combo cabelo raspado + barba", durationMinutes: 45, priceCents: 8000, category: "Combos", description: "Corte raspado uniforme + barba." },
+    { name: "Combo cabelo tesoura e máquina + barba", durationMinutes: 60, priceCents: 9000, category: "Combos", description: "Corte na tesoura e máquina + barba." },
   ];
   const services = [];
   for (const [i, s] of servicesData.entries()) {
@@ -231,7 +234,7 @@ async function main() {
         customerId: customer.id,
         type: "NOTE",
         content: pick(["Gosta de degradê baixo.", "Prefere horário depois das 18h.", "Sempre pede café.", "Cliente desde a inauguração.", "Usa pomada matte."]),
-        createdBy: "Dono Zer0nze",
+        createdBy: "Equipe Zer0nze",
         createdAt: new Date(customer.createdAt.getTime() + 86_400_000),
       },
     });
