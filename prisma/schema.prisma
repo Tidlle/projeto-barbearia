@@ -1,0 +1,240 @@
+// Modelo de dados — SaaS de agendamento + pagamento + CRM para barbearias.
+// Multi-tenant: todo registro de negócio pertence a uma Barbershop.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Barbershop {
+  id                String   @id @default(cuid())
+  slug              String   @unique
+  name              String
+  tagline           String?
+  description       String?
+  address           String?
+  neighborhood      String?
+  city              String?
+  phone             String?
+  whatsapp          String? // somente dígitos, com DDI (ex.: 5511999999999)
+  instagram         String?
+  googleMapsUrl     String?
+  googleRating      Float?
+  googleReviewCount Int?
+  amenities         String[]
+  cancellationPolicy String?
+  timezone          String   @default("America/Sao_Paulo")
+  primaryColor      String   @default("#d4a017")
+
+  // Política de pagamento do agendamento online
+  paymentMode    String @default("DEPOSIT") // NONE | DEPOSIT | FULL
+  depositPercent Int    @default(30)
+
+  // Regras de agenda
+  slotIntervalMinutes Int @default(15)
+  minAdvanceMinutes   Int @default(60)
+  maxAdvanceDays      Int @default(30)
+  holdMinutes         Int @default(15) // tempo que o horário fica reservado aguardando pagamento
+
+  // CRM
+  inactiveAfterDays Int @default(45) // cliente "sumido" depois de X dias sem vir
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users         User[]
+  services      Service[]
+  professionals Professional[]
+  businessHours BusinessHour[]
+  customers     Customer[]
+  appointments  Appointment[]
+  timeOffs      TimeOff[]
+  interactions  Interaction[]
+}
+
+model User {
+  id           String     @id @default(cuid())
+  barbershopId String
+  barbershop   Barbershop @relation(fields: [barbershopId], references: [id], onDelete: Cascade)
+  name         String
+  email        String     @unique
+  passwordHash String
+  role         String     @default("OWNER") // OWNER | STAFF
+  createdAt    DateTime   @default(now())
+}
+
+model BusinessHour {
+  id           String     @id @default(cuid())
+  barbershopId String
+  barbershop   Barbershop @relation(fields: [barbershopId], references: [id], onDelete: Cascade)
+  weekday      Int // 0 = domingo ... 6 = sábado
+  openTime     String // "10:00"
+  closeTime    String // "20:00"
+
+  @@index([barbershopId])
+}
+
+model Service {
+  id              String     @id @default(cuid())
+  barbershopId    String
+  barbershop      Barbershop @relation(fields: [barbershopId], references: [id], onDelete: Cascade)
+  name            String
+  description     String?
+  category        String?
+  durationMinutes Int
+  priceCents      Int
+  active          Boolean    @default(true)
+  sortOrder       Int        @default(0)
+  createdAt       DateTime   @default(now())
+
+  professionals ProfessionalService[]
+  appointments  Appointment[]
+
+  @@index([barbershopId])
+}
+
+model Professional {
+  id           String     @id @default(cuid())
+  barbershopId String
+  barbershop   Barbershop @relation(fields: [barbershopId], references: [id], onDelete: Cascade)
+  name         String
+  role         String     @default("Barbeiro")
+  bio          String?
+  photoUrl     String?
+  active       Boolean    @default(true)
+  sortOrder    Int        @default(0)
+  createdAt    DateTime   @default(now())
+
+  services     ProfessionalService[]
+  workingHours WorkingHour[]
+  appointments Appointment[]
+  timeOffs     TimeOff[]
+
+  @@index([barbershopId])
+}
+
+model ProfessionalService {
+  professionalId String
+  professional   Professional @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+  serviceId      String
+  service        Service      @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  @@id([professionalId, serviceId])
+}
+
+model WorkingHour {
+  id             String       @id @default(cuid())
+  professionalId String
+  professional   Professional @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+  weekday        Int
+  startTime      String
+  endTime        String
+
+  @@index([professionalId])
+}
+
+// Bloqueio de agenda (folga, almoço, feriado). professionalId nulo = barbearia inteira.
+model TimeOff {
+  id             String        @id @default(cuid())
+  barbershopId   String
+  barbershop     Barbershop    @relation(fields: [barbershopId], references: [id], onDelete: Cascade)
+  professionalId String?
+  professional   Professional? @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+  startsAt       DateTime
+  endsAt         DateTime
+  reason         String?
+  createdAt      DateTime      @default(now())
+
+  @@index([barbershopId, startsAt])
+}
+
+model Customer {
+  id               String     @id @default(cuid())
+  barbershopId     String
+  barbershop       Barbershop @relation(fields: [barbershopId], references: [id], onDelete: Cascade)
+  name             String
+  phone            String // somente dígitos com DDI
+  email            String?
+  birthday         DateTime? @db.Date
+  notes            String?
+  tags             String[]
+  source           String? // site, instagram, google, indicacao, whatsapp, manual, importado
+  leadStatus       String     @default("NEW") // NEW | CONTACTED | CONVERTED | LOST
+  marketingConsent Boolean    @default(false)
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+
+  appointments Appointment[]
+  interactions Interaction[]
+
+  @@unique([barbershopId, phone])
+  @@index([barbershopId, leadStatus])
+}
+
+model Appointment {
+  id             String       @id @default(cuid())
+  publicToken    String       @unique @default(cuid())
+  barbershopId   String
+  barbershop     Barbershop   @relation(fields: [barbershopId], references: [id], onDelete: Cascade)
+  customerId     String
+  customer       Customer     @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  professionalId String
+  professional   Professional @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+  serviceId      String
+  service        Service      @relation(fields: [serviceId], references: [id], onDelete: Restrict)
+  startsAt       DateTime
+  endsAt         DateTime
+  // PENDING_PAYMENT | CONFIRMED | COMPLETED | CANCELLED | NO_SHOW | EXPIRED
+  status         String       @default("CONFIRMED")
+  priceCents     Int
+  dueOnlineCents Int          @default(0) // quanto deve ser pago online (sinal ou total)
+  paidCents      Int          @default(0)
+  holdExpiresAt  DateTime?
+  source         String       @default("ONLINE") // ONLINE | MANUAL
+  notes          String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  payments Payment[]
+
+  @@index([barbershopId, startsAt])
+  @@index([professionalId, startsAt])
+  @@index([customerId])
+}
+
+model Payment {
+  id            String      @id @default(cuid())
+  appointmentId String
+  appointment   Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  provider      String // MERCADOPAGO | MOCK
+  kind          String // DEPOSIT | FULL
+  externalId    String?
+  amountCents   Int
+  status        String      @default("PENDING") // PENDING | APPROVED | REJECTED | CANCELLED | REFUNDED
+  checkoutUrl   String?
+  paidAt        DateTime?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@index([appointmentId])
+}
+
+// Linha do tempo do CRM: notas, contatos, eventos de agendamento e pagamento.
+model Interaction {
+  id           String     @id @default(cuid())
+  barbershopId String
+  barbershop   Barbershop @relation(fields: [barbershopId], references: [id], onDelete: Cascade)
+  customerId   String
+  customer     Customer   @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  // NOTE | WHATSAPP | BOOKING_STARTED | BOOKING_CREATED | BOOKING_STATUS | PAYMENT | LEAD_STATUS | IMPORT
+  type         String
+  content      String
+  createdBy    String? // nome do usuário do painel, quando manual
+  createdAt    DateTime   @default(now())
+
+  @@index([customerId, createdAt])
+}
