@@ -9,6 +9,7 @@ const ITEMS = [
   { href: "/painel/agenda", label: "Agenda", icon: "▦" },
   { href: "/painel/clientes", label: "Clientes", icon: "☰" },
   { href: "/painel/leads", label: "Leads", icon: "✦" },
+  { href: "/painel/mensagens", label: "Mensagens", icon: "✉" },
   { href: "/painel/servicos", label: "Serviços", icon: "✂" },
   { href: "/painel/equipe", label: "Equipe", icon: "☺" },
   { href: "/painel/configuracoes", label: "Configurações", icon: "⚙" },

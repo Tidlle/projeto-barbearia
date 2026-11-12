@@ -2,6 +2,7 @@ import Link from "next/link";
 import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { formatPhone } from "@/lib/format";
+import { whatsappProvider } from "@/lib/messaging";
 import { paymentProvider } from "@/lib/payments";
 import { saveSettings } from "../actions";
 import { Flash, HoursEditor } from "@/components/painel";
@@ -15,6 +16,7 @@ export default async function SettingsPage({ searchParams }: Props) {
   const sp = await searchParams;
   const shop = await db.barbershop.findUniqueOrThrow({ where: { id: user.barbershopId }, include: { businessHours: true } });
   const provider = paymentProvider();
+  const whatsapp = whatsappProvider();
 
   return (
     <>
@@ -54,6 +56,28 @@ export default async function SettingsPage({ searchParams }: Props) {
 
         <div className="space-y-6">
           <Card className="space-y-4 p-5">
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="font-semibold">Confirmação de presença</h2>
+              <Badge tone={whatsapp === "META" ? "green" : "amber"}>
+                {whatsapp === "META" ? "WhatsApp conectado" : "WhatsApp simulado"}
+              </Badge>
+            </div>
+            <label className="flex items-start gap-2 text-sm">
+              <input type="checkbox" name="confirmationEnabled" defaultChecked={shop.confirmationEnabled} className="mt-0.5 size-4 accent-[var(--oliva)]" />
+              <span>
+                Enviar pelo WhatsApp um pedido para o cliente confirmar presença
+                <span className="block text-xs text-stone-500">
+                  O cliente toca no link e responde “Confirmo” ou “Não vou conseguir ir” (o horário é liberado na hora).
+                </span>
+              </span>
+            </label>
+            <Field label="Enviar quantos minutos antes do horário" hint="Padrão: 120 (2 horas).">
+              <Input name="confirmationLeadMinutes" type="number" min={30} max={1440} step={15} defaultValue={shop.confirmationLeadMinutes} />
+            </Field>
+            <Link href="/painel/mensagens" className="text-sm text-oliva hover:underline">Ver mensagens enviadas →</Link>
+          </Card>
+
+          <Card className="space-y-4 p-5">
             <div className="flex items-center justify-between">
               <h2 className="font-semibold">Pagamento online</h2>
               <Badge tone={provider === "MERCADOPAGO" ? "green" : "amber"}>
@@ -62,12 +86,14 @@ export default async function SettingsPage({ searchParams }: Props) {
             </div>
             <Field label="Política">
               <Select name="paymentMode" defaultValue={shop.paymentMode}>
-                <option value="DEPOSIT">Sinal antecipado (recomendado: reduz faltas)</option>
+                <option value="NONE">Sem pagamento online (cliente paga na barbearia)</option>
+                <option value="DEPOSIT">Sinal antecipado</option>
                 <option value="FULL">Pagamento total antecipado</option>
-                <option value="NONE">Sem pagamento online (paga na barbearia)</option>
               </Select>
             </Field>
-            <Field label="Sinal (% do valor)"><Input name="depositPercent" type="number" min={5} max={100} defaultValue={shop.depositPercent} /></Field>
+            <Field label="Sinal (% do valor)" hint="Só vale se a política for “Sinal antecipado”.">
+              <Input name="depositPercent" type="number" min={5} max={100} defaultValue={shop.depositPercent} />
+            </Field>
             <Field label="Política de cancelamento (aparece para o cliente)">
               <Textarea name="cancellationPolicy" rows={3} defaultValue={shop.cancellationPolicy ?? ""} />
             </Field>

@@ -65,7 +65,15 @@ export default async function AppointmentPage({ params, searchParams }: Props) {
   gcal.searchParams.set("location", [shop.address, shop.neighborhood, shop.city].filter(Boolean).join(", "));
 
   const header = {
-    CONFIRMED: { icon: "✓", title: "Horário confirmado!", text: "Te esperamos lá. Chegue com 5 minutos de antecedência." },
+    CONFIRMED: appt.attendanceConfirmedAt
+      ? { icon: "✓", title: "Presença confirmada!", text: "Te esperamos lá. Chegue com 5 minutos de antecedência." }
+      : {
+          icon: "✓",
+          title: "Horário agendado!",
+          text: shop.confirmationEnabled
+            ? `${leadLabel(shop.confirmationLeadMinutes)} antes do horário você recebe uma mensagem no WhatsApp para confirmar presença.`
+            : "Te esperamos lá. Chegue com 5 minutos de antecedência.",
+        },
     COMPLETED: { icon: "✓", title: "Atendimento concluído", text: "Valeu pela visita!" },
     PENDING_PAYMENT: { icon: "…", title: "Falta pouco!", text: "Conclua o pagamento para garantir seu horário." },
     EXPIRED: { icon: "!", title: "Reserva expirada", text: "O tempo para pagamento acabou e o horário foi liberado." },
@@ -131,6 +139,11 @@ export default async function AppointmentPage({ params, searchParams }: Props) {
               Escolher novo horário
             </Link>
           )}
+          {appt.status === "CONFIRMED" && appt.startsAt > new Date() && (
+            <Link href={`/confirmar/${appt.publicToken}`} className="order-last text-center text-sm text-tinta/50 underline hover:text-tinta">
+              Não vou conseguir ir — liberar horário
+            </Link>
+          )}
           {ok && appt.startsAt > new Date() && (
             <a
               href={gcal.toString()}
@@ -163,6 +176,11 @@ export default async function AppointmentPage({ params, searchParams }: Props) {
       </div>
     </div>
   );
+}
+
+function leadLabel(minutes: number) {
+  if (minutes % 60 === 0) return minutes === 60 ? "1 hora" : `${minutes / 60} horas`;
+  return `${minutes} minutos`;
 }
 
 function Row({ label, value }: { label: string; value: string }) {

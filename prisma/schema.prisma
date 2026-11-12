@@ -34,7 +34,7 @@ model Barbershop {
   primaryColor      String   @default("#d4a017")
 
   // Política de pagamento do agendamento online
-  paymentMode    String @default("DEPOSIT") // NONE | DEPOSIT | FULL
+  paymentMode    String @default("NONE") // NONE | DEPOSIT | FULL
   depositPercent Int    @default(30)
 
   // Regras de agenda
@@ -42,6 +42,10 @@ model Barbershop {
   minAdvanceMinutes   Int @default(60)
   maxAdvanceDays      Int @default(30)
   holdMinutes         Int @default(15) // tempo que o horário fica reservado aguardando pagamento
+
+  // Confirmação de presença por WhatsApp antes do horário
+  confirmationEnabled     Boolean @default(true)
+  confirmationLeadMinutes Int     @default(120)
 
   // CRM
   inactiveAfterDays Int @default(45) // cliente "sumido" depois de X dias sem vir
@@ -57,6 +61,7 @@ model Barbershop {
   appointments  Appointment[]
   timeOffs      TimeOff[]
   interactions  Interaction[]
+  messages      MessageLog[]
 }
 
 model User {
@@ -173,6 +178,7 @@ model Customer {
 
   appointments Appointment[]
   interactions Interaction[]
+  messages     MessageLog[]
 
   @@unique([barbershopId, phone])
   @@index([barbershopId, leadStatus])
@@ -197,12 +203,15 @@ model Appointment {
   dueOnlineCents Int          @default(0) // quanto deve ser pago online (sinal ou total)
   paidCents      Int          @default(0)
   holdExpiresAt  DateTime?
+  reminderSentAt        DateTime? // pedido de confirmação enviado
+  attendanceConfirmedAt DateTime? // cliente confirmou presença
   source         String       @default("ONLINE") // ONLINE | MANUAL
   notes          String?
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 
   payments Payment[]
+  messages MessageLog[]
 
   @@index([barbershopId, startsAt])
   @@index([professionalId, startsAt])
@@ -240,4 +249,26 @@ model Interaction {
   createdAt    DateTime   @default(now())
 
   @@index([customerId, createdAt])
+}
+
+// Mensagens enviadas aos clientes (WhatsApp), para auditoria e para o modo simulado.
+model MessageLog {
+  id            String       @id @default(cuid())
+  barbershopId  String
+  barbershop    Barbershop   @relation(fields: [barbershopId], references: [id], onDelete: Cascade)
+  customerId    String
+  customer      Customer     @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  appointmentId String?
+  appointment   Appointment? @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
+  kind          String // CONFIRMATION_REQUEST
+  channel       String       @default("WHATSAPP")
+  provider      String // META | SIMULADO
+  to            String
+  body          String
+  status        String // SENT | FAILED
+  error         String?
+  externalId    String?
+  createdAt     DateTime     @default(now())
+
+  @@index([barbershopId, createdAt])
 }

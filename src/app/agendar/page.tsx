@@ -46,6 +46,7 @@ export default async function BookingPage({ searchParams }: Props) {
         paymentMode={shop.paymentMode}
         depositPercent={shop.depositPercent}
         holdMinutes={shop.holdMinutes}
+        confirmationLeadMinutes={shop.confirmationEnabled ? shop.confirmationLeadMinutes : null}
         cancellationPolicy={shop.cancellationPolicy}
         services={services}
         professionals={professionals.map((p) => ({

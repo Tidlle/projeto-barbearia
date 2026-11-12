@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { requireUser } from "@/lib/auth";
+import { attendanceState, confirmationMessage, confirmationUrl, whenLabel } from "@/lib/confirmations";
 import { getCustomersWithStats } from "@/lib/crm";
 import { db } from "@/lib/db";
 import { formatMoney, formatPhone, SOURCE_LABEL, STATUS_LABEL } from "@/lib/format";
@@ -75,7 +76,12 @@ export default async function OverviewPage() {
       />
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Stat accent label="Atendimentos hoje" value={active.length} hint={`${formatMoney(expectedToday)} previstos`} />
+        <Stat
+          accent
+          label="Atendimentos hoje"
+          value={active.length}
+          hint={`${formatMoney(expectedToday)} previstos · ${active.filter((a) => a.attendanceConfirmedAt).length} com presença confirmada`}
+        />
         <Stat label="Faturamento do mês" value={formatMoney(monthDone._sum.priceCents ?? 0)} hint={`${monthDone._count._all} atendimentos concluídos`} />
         <Stat label="Novos leads (7 dias)" value={newLeads7} hint="pessoas que tentaram agendar" />
         <Stat label="Faltas (30 dias)" value={`${noShowRate}%`} hint={`${noShow30} de ${completed30 + noShow30} atendimentos`} />
@@ -98,18 +104,22 @@ export default async function OverviewPage() {
                     <Link href={`/painel/clientes/${a.customerId}`} className="font-medium hover:underline">{a.customer.name}</Link>
                     <p className="truncate text-sm text-stone-500">{a.service.name} · {a.professional.name}</p>
                   </div>
-                  <Badge tone={STATUS_TONE[a.status]}>{STATUS_LABEL[a.status]}</Badge>
+                  {(() => {
+                    const st = attendanceState(a, shop);
+                    return st ? <Badge tone={st.tone}>{st.tone === "green" ? "✓ " : ""}{st.label}</Badge> : <Badge tone={STATUS_TONE[a.status]}>{STATUS_LABEL[a.status]}</Badge>;
+                  })()}
                   <WhatsAppButton
                     customerId={a.customerId}
                     phone={a.customer.phone}
                     variant="ghost"
-                    logLabel="Lembrete de horário"
-                    text={WHATSAPP_TEMPLATES.lembrete.build({
+                    logLabel="Pedido de confirmação (manual)"
+                    text={confirmationMessage({
                       customerName: a.customer.name,
                       shopName: shop.name,
-                      bookingUrl,
-                      when: `hoje às ${timeInTz(a.startsAt, tz)}`,
+                      when: whenLabel(a.startsAt, tz),
+                      service: a.service.name,
                       professional: a.professional.name,
+                      url: confirmationUrl(a.publicToken),
                     })}
                   />
                 </li>

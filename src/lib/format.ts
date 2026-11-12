@@ -45,7 +45,7 @@ export function parseMoneyToCents(input: string): number | null {
 
 export const STATUS_LABEL: Record<string, string> = {
   PENDING_PAYMENT: "Aguardando pagamento",
-  CONFIRMED: "Confirmado",
+  CONFIRMED: "Agendado",
   COMPLETED: "Concluído",
   CANCELLED: "Cancelado",
   NO_SHOW: "Faltou",

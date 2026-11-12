@@ -14,7 +14,8 @@ import {
   zonedToUtc,
 } from "@/lib/time";
 import { appUrl, WHATSAPP_TEMPLATES } from "@/lib/whatsapp";
-import { createManualAppointment, createTimeOff, deleteTimeOff, setAppointmentStatus } from "../actions";
+import { createManualAppointment, createTimeOff, deleteTimeOff, requestConfirmationNow, setAppointmentStatus, setAttendanceConfirmed } from "../actions";
+import { attendanceState, confirmationMessage, confirmationUrl, whenLabel } from "@/lib/confirmations";
 import { Flash } from "@/components/painel";
 import { ConfirmSubmit, SubmitButton } from "@/components/submit-button";
 import { Badge, Button, Card, EmptyState, Field, Input, LinkButton, PageHeader, STATUS_TONE, Select, cn } from "@/components/ui";
@@ -168,7 +169,7 @@ export default async function AgendaPage({ searchParams }: Props) {
                           className={cn("absolute inset-x-1 overflow-hidden rounded-md border px-2 py-1 text-xs shadow-sm hover:z-10 hover:shadow-md", BLOCK_STYLE[a.status])}
                           style={{ top, height: h }}
                         >
-                          <span className="font-semibold tabular-nums">{timeInTz(a.startsAt, tz)}</span> {a.customer.name}
+                          {a.attendanceConfirmedAt && <span title="Presença confirmada">✓ </span>}<span className="font-semibold tabular-nums">{timeInTz(a.startsAt, tz)}</span> {a.customer.name}
                           {h > 34 && <span className="block truncate opacity-75">{a.service.name}</span>}
                         </a>
                       );
@@ -207,7 +208,10 @@ export default async function AgendaPage({ searchParams }: Props) {
                       </p>
                       {a.notes && <p className="mt-1 text-xs text-stone-500">📝 {a.notes}</p>}
                     </div>
-                    <Badge tone={STATUS_TONE[a.status]}>{STATUS_LABEL[a.status]}</Badge>
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <Badge tone={STATUS_TONE[a.status]}>{STATUS_LABEL[a.status]}</Badge>
+                      <AttendanceBadge state={attendanceState(a, shop)} />
+                    </div>
                   </div>
                   <div className="mt-3 flex flex-wrap gap-2 pl-16">
                     {(a.status === "CONFIRMED" || a.status === "PENDING_PAYMENT") && (
@@ -219,17 +223,32 @@ export default async function AgendaPage({ searchParams }: Props) {
                           <input type="hidden" name="status" value="CANCELLED" />
                           <ConfirmSubmit size="sm" variant="ghost" message={`Cancelar o horário de ${a.customer.name}?`}>Cancelar</ConfirmSubmit>
                         </form>
+                        {a.status === "CONFIRMED" && a.startsAt > now && !a.attendanceConfirmedAt && (
+                          <>
+                            <form action={requestConfirmationNow}>
+                              <input type="hidden" name="id" value={a.id} />
+                              <SubmitButton size="sm" variant="outline" pendingText="Enviando…">
+                                {a.reminderSentAt ? "Reenviar pedido" : "Pedir confirmação agora"}
+                              </SubmitButton>
+                            </form>
+                            <form action={setAttendanceConfirmed}>
+                              <input type="hidden" name="id" value={a.id} />
+                              <SubmitButton size="sm" variant="ghost" pendingText="…">Marcar presença confirmada</SubmitButton>
+                            </form>
+                          </>
+                        )}
                         <WhatsAppButton
                           customerId={a.customerId}
                           phone={a.customer.phone}
-                          label="Lembrete"
-                          logLabel="Lembrete de horário"
-                          text={WHATSAPP_TEMPLATES.lembrete.build({
+                          logLabel="Pedido de confirmação (manual)"
+                          variant="ghost"
+                          text={confirmationMessage({
                             customerName: a.customer.name,
                             shopName: shop.name,
-                            bookingUrl,
-                            when: `${formatDateKey(dateKey, { weekday: "long", day: "2-digit", month: "2-digit" })} às ${timeInTz(a.startsAt, tz)}`,
+                            when: whenLabel(a.startsAt, tz),
+                            service: a.service.name,
                             professional: a.professional.name,
+                            url: confirmationUrl(a.publicToken),
                           })}
                         />
                       </>
@@ -319,6 +338,11 @@ export default async function AgendaPage({ searchParams }: Props) {
       </div>
     </>
   );
+}
+
+function AttendanceBadge({ state }: { state: ReturnType<typeof attendanceState> }) {
+  if (!state) return null;
+  return <Badge tone={state.tone}>{state.tone === "green" ? "✓ " : state.tone === "amber" ? "⏳ " : ""}{state.label}</Badge>;
 }
 
 function StatusForm({ id, status, label, variant = "outline" }: { id: string; status: string; label: string; variant?: "primary" | "outline" | "ghost" }) {

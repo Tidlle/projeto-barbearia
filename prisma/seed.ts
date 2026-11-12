@@ -49,8 +49,11 @@ async function main() {
       cancellationPolicy:
         "Imprevistos acontecem! Se for atrasar ou precisar cancelar, avise com antecedência pelo WhatsApp — assim a gente não atrasa o próximo cliente nem a agenda da casa.",
       primaryColor: "#e0a12a",
-      paymentMode: "DEPOSIT",
+      // sem sinal: o cliente paga na barbearia e confirma presença pelo WhatsApp 2h antes
+      paymentMode: "NONE",
       depositPercent: 30,
+      confirmationEnabled: true,
+      confirmationLeadMinutes: 120,
       slotIntervalMinutes: 15,
       minAdvanceMinutes: 60,
       maxAdvanceDays: 30,
@@ -190,8 +193,7 @@ async function main() {
           endsAt,
           status,
           priceCents: svc.priceCents,
-          dueOnlineCents: Math.round(svc.priceCents * 0.3),
-          paidCents: status === "COMPLETED" ? svc.priceCents : Math.round(svc.priceCents * 0.3),
+          paidCents: status === "COMPLETED" ? svc.priceCents : 0,
           source: rand() > 0.4 ? "ONLINE" : "MANUAL",
           createdAt: new Date(startsAt.getTime() - 2 * 86_400_000),
         },
@@ -207,7 +209,10 @@ async function main() {
         const startsAt = zonedToUtc(slot.key, slot.time, TZ);
         const endsAt = new Date(startsAt.getTime() + svc.durationMinutes * 60_000);
         if (startsAt > now && fits(pro.id, startsAt, endsAt)) {
-          const deposit = Math.round(svc.priceCents * 0.3);
+          // horários dentro das próximas 2h já receberam o pedido de confirmação
+          const inWindow = startsAt.getTime() - now.getTime() <= 120 * 60_000;
+          const reminderSentAt = inWindow ? new Date(startsAt.getTime() - 120 * 60_000) : null;
+          const attendanceConfirmedAt = inWindow && rand() > 0.4 ? new Date(reminderSentAt!.getTime() + 20 * 60_000) : null;
           await db.appointment.create({
             data: {
               barbershopId: shop.id,
@@ -218,10 +223,10 @@ async function main() {
               endsAt,
               status: "CONFIRMED",
               priceCents: svc.priceCents,
-              dueOnlineCents: deposit,
-              paidCents: deposit,
               source: "ONLINE",
-              payments: { create: { provider: "MOCK", kind: "DEPOSIT", amountCents: deposit, status: "APPROVED", paidAt: now } },
+              reminderSentAt,
+              attendanceConfirmedAt,
+              createdAt: new Date(now.getTime() - (1 + rand() * 5) * 86_400_000),
             },
           });
         }

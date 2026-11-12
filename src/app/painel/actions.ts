@@ -406,6 +406,8 @@ export async function saveSettings(fd: FormData) {
       maxAdvanceDays: int(fd, "maxAdvanceDays", 1, 180, 30),
       holdMinutes: int(fd, "holdMinutes", 5, 120, 15),
       inactiveAfterDays: int(fd, "inactiveAfterDays", 7, 365, 45),
+      confirmationEnabled: fd.get("confirmationEnabled") === "on",
+      confirmationLeadMinutes: int(fd, "confirmationLeadMinutes", 30, 1440, 120),
     },
   });
   const hours = parseHours(fd);
@@ -417,4 +419,40 @@ export async function saveSettings(fd: FormData) {
   ]);
   revalidatePath("/", "layout");
   back("/painel/configuracoes", { ok: "Configurações salvas" });
+}
+
+// ---------- confirmação de presença ----------
+/** Envia agora o pedido de confirmação (mesma mensagem do envio automático). */
+export async function requestConfirmationNow(fd: FormData) {
+  const user = await requireUser();
+  const id = str(fd, "id");
+  const appt = await db.appointment.findFirst({ where: { id, barbershopId: user.barbershopId } });
+  if (!appt) throw new Error("Agendamento não encontrado");
+  const { sendConfirmationRequest } = await import("@/lib/confirmations");
+  await sendConfirmationRequest(id, { force: true, by: user.name });
+  revalidatePath("/painel", "layout");
+}
+
+/** Dono marca a presença como confirmada (ex.: cliente respondeu por telefone). */
+export async function setAttendanceConfirmed(fd: FormData) {
+  const user = await requireUser();
+  const id = str(fd, "id");
+  const confirmed = str(fd, "value") !== "false";
+  const appt = await db.appointment.findFirst({ where: { id, barbershopId: user.barbershopId }, include: { service: true } });
+  if (!appt) throw new Error("Agendamento não encontrado");
+  await db.$transaction([
+    db.appointment.update({ where: { id }, data: { attendanceConfirmedAt: confirmed ? new Date() : null } }),
+    db.interaction.create({
+      data: {
+        barbershopId: user.barbershopId,
+        customerId: appt.customerId,
+        type: "BOOKING_STATUS",
+        content: confirmed
+          ? `✅ Presença confirmada pela equipe: ${appt.service.name} (${formatWhen(appt.startsAt, user.barbershop.timezone)})`
+          : `Confirmação de presença desfeita: ${appt.service.name}`,
+        createdBy: user.name,
+      },
+    }),
+  ]);
+  revalidatePath("/painel", "layout");
 }

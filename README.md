@@ -8,7 +8,8 @@ O que tem:
 
 - **Site da barbearia** (`/`): tabela de serviços, equipe, a casa (comodidades, Instagram), nota no Google, horários com status "aberto agora", mapa e contatos.
 - **Agendamento online** (`/agendar`): serviço → barbeiro (ou "sem preferência") → dia/horário → dados → pagamento.
-- **Pagamento antecipado** (sinal % ou valor total) via **Mercado Pago** (Pix e cartão). Enquanto o cliente paga, o horário fica reservado por alguns minutos. Sem credenciais, usa um **checkout simulado**.
+- **Confirmação de presença pelo WhatsApp** (padrão da Zer0nze): sem pagamento antecipado. **2 horas antes** do horário o cliente recebe uma mensagem com um link para responder "Confirmo" ou "Não vou conseguir ir". Se ele não vai, o horário é liberado na hora. A agenda mostra quem confirmou, e a página **Mensagens** mostra tudo o que foi enviado.
+- **Pagamento antecipado** (opcional, desligado na Zer0nze): sinal ou valor total via **Mercado Pago** (Pix e cartão). Sem credenciais, usa um **checkout simulado**.
 - **Captura de leads**: quem informa os dados e não conclui vira lead no CRM, com a origem registrada (`?origem=instagram|google|indicacao|whatsapp`).
 - **Painel do dono** (`/painel`):
   - **Visão geral**: atendimentos do dia, faturamento, leads e taxa de faltas.
@@ -48,12 +49,33 @@ O status também é sincronizado quando o cliente volta do checkout, então func
 
 O checkout simulado fica **desativado em produção**, a menos que `ALLOW_MOCK_PAYMENTS="true"`. Nunca habilite isso com clientes reais.
 
+## Confirmação de presença (WhatsApp)
+
+**Como funciona**
+- Uma rotina roda **a cada minuto** e envia o pedido para todo horário que começa nas próximas 2h (ajustável em Configurações) e que ainda não recebeu o pedido.
+- Quem marcou já dentro dessa janela não recebe a mensagem automática, porque acabou de marcar. Para esses casos existe o botão **"Pedir confirmação agora"** na Agenda.
+- Em servidor sempre ligado (dev, VPS, Railway, Render), o próprio app dispara a rotina (`src/instrumentation.ts`).
+- Em hospedagem serverless (Vercel), defina `INTERNAL_SCHEDULER="false"` e configure um cron externo (por exemplo, cron-job.org a cada 5 minutos). Ele chama `GET https://SEU_DOMINIO/api/cron/confirmacoes` com o cabeçalho `Authorization: Bearer <CRON_SECRET>`.
+
+**Modo simulado (padrão).** Sem credenciais da Meta, nada sai do servidor: os pedidos ficam em **Painel → Mensagens**, com o link que o cliente receberia. Enquanto isso, o dono pode enviar pelo próprio WhatsApp usando o ícone do WhatsApp na Agenda, que abre a conversa com a mesma mensagem pronta.
+
+**Ligar o envio de verdade (WhatsApp Cloud API, oficial)**
+1. No Meta for Developers, crie um app do tipo *Business* e adicione o produto **WhatsApp**. Cadastre e verifique o número da barbearia.
+2. Crie um **modelo de mensagem** (categoria *Utilidade*, idioma *Português (BR)*), por exemplo `confirmacao_presenca`:
+   - Corpo: `Olá, {{1}}! Seu horário na Zer0nze Co. é {{2}} ({{3}}). Você confirma presença?`
+   - Botão do tipo **URL dinâmica**: `https://SEU_DOMINIO/confirmar/{{1}}`
+3. Depois que a Meta aprovar o modelo, preencha `WHATSAPP_TOKEN` (token permanente de usuário do sistema), `WHATSAPP_PHONE_NUMBER_ID` e `WHATSAPP_TEMPLATE_CONFIRMACAO` no `.env`.
+
+A Meta cobra por conversa iniciada pela empresa. Na categoria Utilidade o custo é de centavos por mensagem.
+
 ## Estrutura
 
 ```
 prisma/schema.prisma        modelo de dados (multi-tenant por Barbershop)
 prisma/seed.ts              demo Zer0nze
 src/lib/availability.ts     cálculo de horários livres + checagem de conflito
+src/lib/confirmations.ts    pedido de confirmação de presença (rotina + envio)
+src/lib/messaging.ts        WhatsApp Cloud API / simulado
 src/lib/payments.ts         Mercado Pago / simulado, webhook, aplicação de status
 src/lib/crm.ts              métricas e segmentos de clientes
 src/lib/time.ts             fuso horário da barbearia (sem dependências)
@@ -76,8 +98,8 @@ Vercel (app) + Supabase ou Neon (Postgres). Defina as variáveis do `.env.exampl
 ## Limitações conhecidas do MVP / próximos passos
 
 **Fase 2 (retenção)**
-- WhatsApp automático (API oficial da Meta): confirmação, lembrete 24h/2h, convite de retorno, aniversário e pedido de avaliação. Hoje as mensagens são abertas pelo dono com um clique (`wa.me`).
-- Rotinas agendadas (cron) para lembretes e para expirar reservas pendentes. Hoje a expiração acontece quando a agenda ou o agendamento é consultado.
+- Respostas do cliente direto no WhatsApp (botões de resposta rápida via webhook da Meta). Hoje a resposta é pelo link.
+- Outras mensagens automáticas: convite de retorno para sumidos, aniversário e pedido de avaliação depois do corte. Hoje o dono as envia com um clique (`wa.me`).
 - Clube de assinatura com cobrança recorrente.
 - Cliente consultar, cancelar ou remarcar os próprios horários (login por código no WhatsApp).
 - App do barbeiro instalável pelo navegador.

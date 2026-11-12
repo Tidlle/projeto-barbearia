@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState, useTransition } from "react";
-import { cn } from "@/components/ui";
+import { WhatsAppIcon, cn } from "@/components/ui";
 import { computeDueOnline, formatDuration, formatMoney } from "@/lib/format";
 import { WEEKDAYS_SHORT, addDaysToKey, formatDate, formatDateKey, timeInTz, weekdayOf } from "@/lib/time";
 import { captureLead, createBooking } from "./actions";
@@ -40,6 +40,8 @@ export function BookingWizard(props: {
   paymentMode: string;
   depositPercent: number;
   holdMinutes: number;
+  /** antecedência do pedido de confirmação por WhatsApp (null = desativado) */
+  confirmationLeadMinutes: number | null;
   cancellationPolicy: string | null;
   services: Service[];
   professionals: Pro[];
@@ -428,6 +430,19 @@ export function BookingWizard(props: {
                 enquanto você conclui o pagamento.
               </p>
             )}
+            {due === 0 && (
+              <div className="mt-4 flex gap-3 rounded-2xl bg-white p-4 text-sm ring-1 ring-tinta/10">
+                <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-[#25D366]/15 text-[#128C4B]">
+                  <WhatsAppIcon />
+                </span>
+                <p className="text-tinta/70">
+                  <strong className="text-tinta">Sem pagamento antecipado</strong> — você paga na barbearia.
+                  {props.confirmationLeadMinutes
+                    ? ` ${formatLead(props.confirmationLeadMinutes)} antes do horário, a gente te manda uma mensagem no WhatsApp para você confirmar presença.`
+                    : ""}
+                </p>
+              </div>
+            )}
             {props.cancellationPolicy && <p className="mt-3 text-xs text-tinta/50">{props.cancellationPolicy}</p>}
           </section>
         )}
@@ -465,6 +480,11 @@ export function BookingWizard(props: {
       )}
     </div>
   );
+}
+
+function formatLead(minutes: number) {
+  if (minutes % 60 === 0) return minutes === 60 ? "1 hora" : `${minutes / 60} horas`;
+  return `${minutes} minutos`;
 }
 
 const primaryBtn =
