@@ -164,6 +164,12 @@ export default async function AppointmentPage({ params, searchParams }: Props) {
               <WhatsAppIcon /> Falar com a barbearia
             </a>
           )}
+          <Link
+            href="/"
+            className="rounded-full bg-oliva py-3 text-center font-slab font-bold uppercase tracking-wider text-creme hover:bg-oliva-escuro"
+          >
+            ← Voltar ao site
+          </Link>
           {shop.googleMapsUrl && (
             <a href={shop.googleMapsUrl} target="_blank" rel="noopener noreferrer" className="text-center text-sm font-semibold text-oliva hover:underline">
               Ver no mapa
