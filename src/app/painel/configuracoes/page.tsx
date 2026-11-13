@@ -59,7 +59,7 @@ export default async function SettingsPage({ searchParams }: Props) {
             <div className="flex items-center justify-between gap-3">
               <h2 className="font-semibold">Confirmação de presença</h2>
               <Badge tone={whatsapp === "META" ? "green" : "amber"}>
-                {whatsapp === "META" ? "WhatsApp conectado" : "WhatsApp simulado"}
+                {whatsapp === "META" ? "Envio automático (API)" : "Envio assistido"}
               </Badge>
             </div>
             <label className="flex items-start gap-2 text-sm">
@@ -74,7 +74,14 @@ export default async function SettingsPage({ searchParams }: Props) {
             <Field label="Enviar quantos minutos antes do horário" hint="Padrão: 120 (2 horas).">
               <Input name="confirmationLeadMinutes" type="number" min={30} max={1440} step={15} defaultValue={shop.confirmationLeadMinutes} />
             </Field>
-            <Link href="/painel/mensagens" className="text-sm text-oliva hover:underline">Ver mensagens enviadas →</Link>
+            <Field label="Como os pedidos entram na fila" hint="Em rodadas, a equipe envia vários de uma vez em vez de parar toda hora (o pedido pode sair até 1 rodada mais cedo).">
+              <Select name="confirmationBatchMinutes" defaultValue={String(shop.confirmationBatchMinutes)}>
+                <option value="0">Na hora exata de cada horário</option>
+                <option value="30">Em rodadas a cada 30 minutos</option>
+                <option value="60">Em rodadas a cada 1 hora</option>
+              </Select>
+            </Field>
+            <Link href="/painel/confirmacoes" className="text-sm text-oliva hover:underline">Abrir a fila de confirmações →</Link>
           </Card>
 
           <Card className="space-y-4 p-5">

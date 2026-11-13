@@ -46,6 +46,7 @@ model Barbershop {
   // Confirmação de presença por WhatsApp antes do horário
   confirmationEnabled     Boolean @default(true)
   confirmationLeadMinutes Int     @default(120)
+  confirmationBatchMinutes Int    @default(0) // 0 = cada horário entra na fila na hora exata; 30/60 = em rodadas
 
   // CRM
   inactiveAfterDays Int @default(45) // cliente "sumido" depois de X dias sem vir
@@ -205,6 +206,8 @@ model Appointment {
   holdExpiresAt  DateTime?
   reminderSentAt        DateTime? // pedido de confirmação enviado
   attendanceConfirmedAt DateTime? // cliente confirmou presença
+  confirmationSkippedAt DateTime? // equipe dispensou o envio
+  confirmationAutoFailedAt DateTime? // envio automático (API) falhou: fica na fila manual
   source         String       @default("ONLINE") // ONLINE | MANUAL
   notes          String?
   createdAt      DateTime     @default(now())
@@ -262,7 +265,7 @@ model MessageLog {
   appointment   Appointment? @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
   kind          String // CONFIRMATION_REQUEST
   channel       String       @default("WHATSAPP")
-  provider      String // META | SIMULADO
+  provider      String // META (API oficial) | MANUAL (enviado pela equipe pelo WhatsApp da barbearia)
   to            String
   body          String
   status        String // SENT | FAILED

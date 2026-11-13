@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { requireUser } from "@/lib/auth";
+import { countReadyConfirmations } from "@/lib/confirmations";
 import { brandStyle } from "@/lib/shop";
 import { logout } from "../entrar/actions";
 import { PainelNav } from "./nav";
@@ -30,7 +31,7 @@ export default async function PainelLayout({ children }: { children: React.React
             Ver site ↗
           </Link>
         </div>
-        <PainelNav />
+        <PainelNav initialQueueCount={await countReadyConfirmations(shop)} />
         <div className="hidden border-t border-creme/10 p-4 text-sm md:mt-auto md:block">
           <Link href="/" target="_blank" className="mb-3 block text-brand hover:underline">
             Ver o site ↗

@@ -13,9 +13,11 @@ import {
   weekdayOf,
   zonedToUtc,
 } from "@/lib/time";
-import { appUrl, WHATSAPP_TEMPLATES } from "@/lib/whatsapp";
-import { createManualAppointment, createTimeOff, deleteTimeOff, requestConfirmationNow, setAppointmentStatus, setAttendanceConfirmed } from "../actions";
-import { attendanceState, confirmationMessage, confirmationUrl, whenLabel } from "@/lib/confirmations";
+import { appUrl, waLink, WHATSAPP_TEMPLATES } from "@/lib/whatsapp";
+import { createManualAppointment, createTimeOff, deleteTimeOff, setAppointmentStatus, setAttendanceConfirmed } from "../actions";
+import { SendConfirmationButton } from "@/components/confirmation-buttons";
+import { whatsappProvider } from "@/lib/messaging";
+import { attendanceState, messageFor } from "@/lib/confirmations";
 import { Flash } from "@/components/painel";
 import { ConfirmSubmit, SubmitButton } from "@/components/submit-button";
 import { Badge, Button, Card, EmptyState, Field, Input, LinkButton, PageHeader, STATUS_TONE, Select, cn } from "@/components/ui";
@@ -87,6 +89,7 @@ export default async function AgendaPage({ searchParams }: Props) {
 
   const revenue = onGrid.filter((a) => a.status !== "NO_SHOW").reduce((s, a) => s + a.priceCents, 0);
   const bookingUrl = appUrl("/agendar");
+  const autoWhatsApp = whatsappProvider() === "META";
   const label = formatDateKey(dateKey, { weekday: "long", day: "numeric", month: "long" });
 
   return (
@@ -225,32 +228,29 @@ export default async function AgendaPage({ searchParams }: Props) {
                         </form>
                         {a.status === "CONFIRMED" && a.startsAt > now && !a.attendanceConfirmedAt && (
                           <>
-                            <form action={requestConfirmationNow}>
-                              <input type="hidden" name="id" value={a.id} />
-                              <SubmitButton size="sm" variant="outline" pendingText="Enviando…">
-                                {a.reminderSentAt ? "Reenviar pedido" : "Pedir confirmação agora"}
-                              </SubmitButton>
-                            </form>
+                            {a.reminderSentAt ? (
+                              <WhatsAppButton
+                                customerId={a.customerId}
+                                phone={a.customer.phone}
+                                label="Reenviar pedido"
+                                logLabel="Pedido de confirmação reenviado"
+                                variant="outline"
+                                text={messageFor(a, shop)}
+                              />
+                            ) : (
+                              <SendConfirmationButton
+                                appointmentId={a.id}
+                                waUrl={waLink(a.customer.phone, messageFor(a, shop))}
+                                auto={autoWhatsApp}
+                                label="Pedir confirmação"
+                              />
+                            )}
                             <form action={setAttendanceConfirmed}>
                               <input type="hidden" name="id" value={a.id} />
                               <SubmitButton size="sm" variant="ghost" pendingText="…">Marcar presença confirmada</SubmitButton>
                             </form>
                           </>
                         )}
-                        <WhatsAppButton
-                          customerId={a.customerId}
-                          phone={a.customer.phone}
-                          logLabel="Pedido de confirmação (manual)"
-                          variant="ghost"
-                          text={confirmationMessage({
-                            customerName: a.customer.name,
-                            shopName: shop.name,
-                            when: whenLabel(a.startsAt, tz),
-                            service: a.service.name,
-                            professional: a.professional.name,
-                            url: confirmationUrl(a.publicToken),
-                          })}
-                        />
                       </>
                     )}
                     {a.status === "COMPLETED" && (

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { requireUser } from "@/lib/auth";
-import { attendanceState, confirmationMessage, confirmationUrl, whenLabel } from "@/lib/confirmations";
+import { attendanceState, confirmationMessage, confirmationUrl, countReadyConfirmations, whenLabel } from "@/lib/confirmations";
 import { getCustomersWithStats } from "@/lib/crm";
 import { db } from "@/lib/db";
 import { formatMoney, formatPhone, SOURCE_LABEL, STATUS_LABEL } from "@/lib/format";
@@ -61,6 +61,7 @@ export default async function OverviewPage() {
     return Array.from({ length: 7 }, (_, i) => addDaysToKey(todayKey, i).slice(5, 10)).includes(md);
   });
   const bookingUrl = appUrl("/agendar");
+  const queueCount = await countReadyConfirmations(shop);
 
   return (
     <>
@@ -74,6 +75,18 @@ export default async function OverviewPage() {
           </>
         }
       />
+
+      {queueCount > 0 && (
+        <Link
+          href="/painel/confirmacoes"
+          className="mb-4 flex items-center justify-between gap-3 rounded-xl bg-brand px-5 py-4 text-brand-ink hover:brightness-105"
+        >
+          <span className="font-semibold">
+            {queueCount === 1 ? "1 pedido de confirmação para enviar" : `${queueCount} pedidos de confirmação para enviar`}
+          </span>
+          <span className="text-sm font-semibold">Abrir a fila →</span>
+        </Link>
+      )}
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Stat

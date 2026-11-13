@@ -27,12 +27,13 @@ export default async function MessagesPage() {
         }`}
       />
 
-      {provider === "SIMULADO" ? (
-        <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-          <p className="font-semibold">Modo simulado: as mensagens ainda não chegam no WhatsApp do cliente.</p>
+      {provider === "ASSISTIDO" ? (
+        <div className="mb-6 rounded-xl border border-stone-200 bg-white p-4 text-sm text-stone-700">
+          <p className="font-semibold">Envio assistido pelo WhatsApp da barbearia.</p>
           <p className="mt-1">
-            Os pedidos são gerados no horário certo e ficam registrados aqui (abra o link para testar como o cliente responde). Para enviar de verdade,
-            configure a API oficial do WhatsApp (veja o README). Enquanto isso, use o botão do WhatsApp na Agenda para enviar pelo seu próprio número.
+            Os pedidos entram na <Link href="/painel/confirmacoes" className="text-oliva underline">fila de Confirmações</Link> no horário certo; a equipe
+            envia com um toque e eles aparecem aqui. Se um dia a API oficial do WhatsApp for configurada (veja o README), a mesma fila passa a ser
+            enviada sozinha.
           </p>
         </div>
       ) : (
@@ -45,7 +46,7 @@ export default async function MessagesPage() {
         {messages.length === 0 ? (
           <div className="p-6">
             <EmptyState title="Nenhuma mensagem enviada ainda">
-              Os pedidos saem sozinhos {shop.confirmationLeadMinutes} minutos antes de cada horário. Para testar agora, use “Pedir confirmação agora” na Agenda.
+              Os pedidos entram na fila de Confirmações antes de cada horário. Quando forem enviados, aparecem aqui.
             </EmptyState>
           </div>
         ) : (
@@ -76,7 +77,7 @@ export default async function MessagesPage() {
                       {formatDate(m.createdAt, shop.timezone, { day: "2-digit", month: "2-digit" })} {timeInTz(m.createdAt, shop.timezone)}
                       <div className="mt-1 flex gap-1">
                         <Badge tone={m.status === "SENT" ? "blue" : "red"}>{m.status === "SENT" ? "Enviada" : "Falhou"}</Badge>
-                        {m.provider === "SIMULADO" && <Badge>Simulada</Badge>}
+                        <Badge>{m.provider === "META" ? "Automática" : m.provider === "MANUAL" ? "Pela equipe" : "Teste"}</Badge>
                       </div>
                     </td>
                     <td className="px-4 py-3">

@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { hasConflict } from "@/lib/availability";
+import { markConfirmationSent, sendConfirmationViaApi, skipConfirmation, undoConfirmationSent } from "@/lib/confirmations";
 import { requireUser } from "@/lib/auth";
 import { decodeCsv, parseBirthdayLoose, parseCsv } from "@/lib/csv";
 import { db } from "@/lib/db";
@@ -408,6 +409,7 @@ export async function saveSettings(fd: FormData) {
       inactiveAfterDays: int(fd, "inactiveAfterDays", 7, 365, 45),
       confirmationEnabled: fd.get("confirmationEnabled") === "on",
       confirmationLeadMinutes: int(fd, "confirmationLeadMinutes", 30, 1440, 120),
+      confirmationBatchMinutes: [0, 30, 60].includes(Number(str(fd, "confirmationBatchMinutes"))) ? Number(str(fd, "confirmationBatchMinutes")) : 0,
     },
   });
   const hours = parseHours(fd);
@@ -422,15 +424,35 @@ export async function saveSettings(fd: FormData) {
 }
 
 // ---------- confirmação de presença ----------
-/** Envia agora o pedido de confirmação (mesma mensagem do envio automático). */
-export async function requestConfirmationNow(fd: FormData) {
+/** Equipe tocou em "Enviar": o WhatsApp abriu com a mensagem pronta. */
+export async function markConfirmationSentAction(appointmentId: string) {
   const user = await requireUser();
-  const id = str(fd, "id");
-  const appt = await db.appointment.findFirst({ where: { id, barbershopId: user.barbershopId } });
-  if (!appt) throw new Error("Agendamento não encontrado");
-  const { sendConfirmationRequest } = await import("@/lib/confirmations");
-  await sendConfirmationRequest(id, { force: true, by: user.name });
+  await markConfirmationSent(appointmentId, user.barbershopId, user.name);
   revalidatePath("/painel", "layout");
+}
+
+/** Desfaz o último "enviado" (a mensagem não foi mandada de fato). */
+export async function undoConfirmationSentAction(appointmentId: string) {
+  const user = await requireUser();
+  await undoConfirmationSent(appointmentId, user.barbershopId);
+  revalidatePath("/painel", "layout");
+}
+
+/** Tira da fila sem enviar. */
+export async function skipConfirmationAction(appointmentId: string) {
+  const user = await requireUser();
+  await skipConfirmation(appointmentId, user.barbershopId, user.name);
+  revalidatePath("/painel", "layout");
+}
+
+/** Envio pela API oficial (só quando configurada). */
+export async function sendConfirmationApiAction(appointmentId: string) {
+  const user = await requireUser();
+  const appt = await db.appointment.findFirst({ where: { id: appointmentId, barbershopId: user.barbershopId } });
+  if (!appt) throw new Error("Agendamento não encontrado");
+  const r = await sendConfirmationViaApi(appointmentId, user.name);
+  revalidatePath("/painel", "layout");
+  return r;
 }
 
 /** Dono marca a presença como confirmada (ex.: cliente respondeu por telefone). */

@@ -8,7 +8,7 @@ O que tem:
 
 - **Site da barbearia** (`/`): tabela de serviços, equipe, a casa (comodidades, Instagram), nota no Google, horários com status "aberto agora", mapa e contatos.
 - **Agendamento online** (`/agendar`): serviço → barbeiro (ou "sem preferência") → dia/horário → dados → pagamento.
-- **Confirmação de presença pelo WhatsApp** (padrão da Zer0nze): sem pagamento antecipado. **2 horas antes** do horário o cliente recebe uma mensagem com um link para responder "Confirmo" ou "Não vou conseguir ir". Se ele não vai, o horário é liberado na hora. A agenda mostra quem confirmou, e a página **Mensagens** mostra tudo o que foi enviado.
+- **Confirmação de presença pelo WhatsApp** (padrão da Zer0nze): sem pagamento antecipado. **2 horas antes** do horário o cliente entra numa **esteira de confirmações**. A equipe envia pelo WhatsApp da barbearia, com um toque por cliente e aviso sonoro quando entra alguém na fila. A mensagem traz um link para responder "Confirmo" ou "Não vou conseguir ir"; se ele não vai, o horário é liberado na hora. A agenda mostra quem confirmou, e a página **Mensagens** mostra tudo o que foi enviado.
 - **Pagamento antecipado** (opcional, desligado na Zer0nze): sinal ou valor total via **Mercado Pago** (Pix e cartão). Sem credenciais, usa um **checkout simulado**.
 - **Captura de leads**: quem informa os dados e não conclui vira lead no CRM, com a origem registrada (`?origem=instagram|google|indicacao|whatsapp`).
 - **Painel do dono** (`/painel`):
@@ -51,13 +51,20 @@ O checkout simulado fica **desativado em produção**, a menos que `ALLOW_MOCK_P
 
 ## Confirmação de presença (WhatsApp)
 
-**Como funciona**
-- Uma rotina roda **a cada minuto** e envia o pedido para todo horário que começa nas próximas 2h (ajustável em Configurações) e que ainda não recebeu o pedido.
-- Quem marcou já dentro dessa janela não recebe a mensagem automática, porque acabou de marcar. Para esses casos existe o botão **"Pedir confirmação agora"** na Agenda.
+**A esteira (Painel → Confirmações)**
+- Cada horário entra na **fila** 2h antes do atendimento. A antecedência é ajustável, e dá para usar rodadas de 30 ou 60 minutos para a equipe enviar vários de uma vez.
+- **Modo assistido (padrão, sem custo e sem risco).** O envio sai pelo WhatsApp da própria barbearia:
+  - o painel mostra o próximo da fila em destaque;
+  - **"Enviar pelo WhatsApp"** abre o WhatsApp com a mensagem pronta, a pessoa toca em enviar, volta, e o próximo já está esperando;
+  - há "Desfazer" (caso não tenha enviado), "Já confirmou" e "Dispensar".
+- **Avisos:** com o painel aberto, o menu mostra um contador e a aba do navegador mostra "(N)". Com "Ligar avisos com som", toca um aviso e aparece uma notificação quando entra alguém novo. O painel consulta a fila a cada 30 segundos.
+- Quem marcou já dentro da janela de 2h aparece à parte ("marcaram em cima da hora"), com envio opcional.
+- Os atrasados (mais de 30 minutos depois do horário ideal) ganham a etiqueta **Atrasado**.
+- A resposta do cliente vem pelo link da mensagem e cai sozinha na agenda.
+
+**Modo automático (quando houver a API oficial).** A mesma fila passa a ser enviada sozinha por uma rotina que roda a cada minuto. Se um envio falhar, ele fica na fila para envio manual.
 - Em servidor sempre ligado (dev, VPS, Railway, Render), o próprio app dispara a rotina (`src/instrumentation.ts`).
 - Em hospedagem serverless (Vercel), defina `INTERNAL_SCHEDULER="false"` e configure um cron externo (por exemplo, cron-job.org a cada 5 minutos). Ele chama `GET https://SEU_DOMINIO/api/cron/confirmacoes` com o cabeçalho `Authorization: Bearer <CRON_SECRET>`.
-
-**Modo simulado (padrão).** Sem credenciais da Meta, nada sai do servidor: os pedidos ficam em **Painel → Mensagens**, com o link que o cliente receberia. Enquanto isso, o dono pode enviar pelo próprio WhatsApp usando o ícone do WhatsApp na Agenda, que abre a conversa com a mesma mensagem pronta.
 
 **Ligar o envio de verdade (WhatsApp Cloud API, oficial)**
 1. No Meta for Developers, crie um app do tipo *Business* e adicione o produto **WhatsApp**. Cadastre e verifique o número da barbearia.

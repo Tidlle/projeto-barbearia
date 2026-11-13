@@ -4,13 +4,13 @@ import "server-only";
  * Envio de WhatsApp.
  * - META: API oficial (WhatsApp Cloud API). Mensagens iniciadas pela empresa precisam de um
  *   modelo (template) aprovado pela Meta — ver README.
- * - SIMULADO: sem credenciais, nada sai do servidor; a mensagem fica registrada no painel
- *   (Mensagens) para testes.
+ * - ASSISTIDO: sem credenciais, a equipe envia pelo WhatsApp da própria barbearia, um toque por
+ *   cliente, a partir da fila de confirmações do painel.
  */
-export type WhatsAppProvider = "META" | "SIMULADO";
+export type WhatsAppProvider = "META" | "ASSISTIDO";
 
 export function whatsappProvider(): WhatsAppProvider {
-  return process.env.WHATSAPP_TOKEN && process.env.WHATSAPP_PHONE_NUMBER_ID ? "META" : "SIMULADO";
+  return process.env.WHATSAPP_TOKEN && process.env.WHATSAPP_PHONE_NUMBER_ID ? "META" : "ASSISTIDO";
 }
 
 export type SendResult = { provider: WhatsAppProvider; ok: boolean; externalId?: string; error?: string };
@@ -28,7 +28,7 @@ export async function sendConfirmationWhatsApp(params: {
   service: string; // "Corte masculino com China"
   token: string;
 }): Promise<SendResult> {
-  if (whatsappProvider() === "SIMULADO") return { provider: "SIMULADO", ok: true };
+  if (whatsappProvider() !== "META") return { provider: "ASSISTIDO", ok: false, error: "API do WhatsApp não configurada" };
 
   const template = process.env.WHATSAPP_TEMPLATE_CONFIRMACAO;
   if (!template) return { provider: "META", ok: false, error: "WHATSAPP_TEMPLATE_CONFIRMACAO não configurado" };

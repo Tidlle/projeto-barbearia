@@ -209,10 +209,10 @@ async function main() {
         const startsAt = zonedToUtc(slot.key, slot.time, TZ);
         const endsAt = new Date(startsAt.getTime() + svc.durationMinutes * 60_000);
         if (startsAt > now && fits(pro.id, startsAt, endsAt)) {
-          // horários dentro das próximas 2h já receberam o pedido de confirmação
+          // horários dentro das próximas 2h: metade ainda na fila de confirmações, metade já enviada
           const inWindow = startsAt.getTime() - now.getTime() <= 120 * 60_000;
-          const reminderSentAt = inWindow ? new Date(startsAt.getTime() - 120 * 60_000) : null;
-          const attendanceConfirmedAt = inWindow && rand() > 0.4 ? new Date(reminderSentAt!.getTime() + 20 * 60_000) : null;
+          const reminderSentAt = inWindow && rand() > 0.5 ? new Date(startsAt.getTime() - 120 * 60_000) : null;
+          const attendanceConfirmedAt = reminderSentAt && rand() > 0.4 ? new Date(reminderSentAt.getTime() + 20 * 60_000) : null;
           await db.appointment.create({
             data: {
               barbershopId: shop.id,

@@ -27,7 +27,7 @@ export default async function LoginPage() {
             Zer0nze <span className="text-brand">Co.</span>
           </p>
           <h1 className="mt-4 font-slab text-2xl font-bold">Entrar no painel</h1>
-          <p className="mt-1 text-sm text-tinta/60">Acesso restrito à equipe da {shop?.name ?? "barbearia"}.</p>
+          <p className="mt-1 text-sm text-tinta/60">Acesso restrito à equipe da {shop?.name.replace(/\.$/, "") ?? "barbearia"}.</p>
           <LoginForm />
           <Link href="/" className="mt-8 block text-center text-sm text-tinta/50 hover:text-oliva">
             ← Voltar para o site
