@@ -11,6 +11,13 @@ import { Badge, Card, Field, Input, PageHeader, Select, Textarea } from "@/compo
 
 type Props = { searchParams: Promise<{ ok?: string; erro?: string }> };
 
+const LEAD_OPTIONS = [
+  { minutes: 1440, label: "24 horas antes" },
+  { minutes: 180, label: "3 horas antes" },
+  { minutes: 120, label: "2 horas antes" },
+  { minutes: 60, label: "1 hora antes" },
+];
+
 export default async function SettingsPage({ searchParams }: Props) {
   const user = await requireUser();
   const sp = await searchParams;
@@ -71,8 +78,17 @@ export default async function SettingsPage({ searchParams }: Props) {
                 </span>
               </span>
             </label>
-            <Field label="Enviar quantos minutos antes do horário" hint="Padrão: 120 (2 horas).">
-              <Input name="confirmationLeadMinutes" type="number" min={30} max={1440} step={15} defaultValue={shop.confirmationLeadMinutes} />
+            <Field label="Enviar o pedido de confirmação" hint="Padrão: 2 horas antes.">
+              <Select name="confirmationLeadMinutes" defaultValue={String(shop.confirmationLeadMinutes)}>
+                {LEAD_OPTIONS.map((o) => (
+                  <option key={o.minutes} value={o.minutes}>
+                    {o.label}
+                  </option>
+                ))}
+                {!LEAD_OPTIONS.some((o) => o.minutes === shop.confirmationLeadMinutes) && (
+                  <option value={shop.confirmationLeadMinutes}>{shop.confirmationLeadMinutes} minutos antes (atual)</option>
+                )}
+              </Select>
             </Field>
             <Field label="Como os pedidos entram na fila" hint="Em rodadas, a equipe envia vários de uma vez em vez de parar toda hora (o pedido pode sair até 1 rodada mais cedo).">
               <Select name="confirmationBatchMinutes" defaultValue={String(shop.confirmationBatchMinutes)}>

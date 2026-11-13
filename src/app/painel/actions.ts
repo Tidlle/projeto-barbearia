@@ -408,7 +408,10 @@ export async function saveSettings(fd: FormData) {
       holdMinutes: int(fd, "holdMinutes", 5, 120, 15),
       inactiveAfterDays: int(fd, "inactiveAfterDays", 7, 365, 45),
       confirmationEnabled: fd.get("confirmationEnabled") === "on",
-      confirmationLeadMinutes: int(fd, "confirmationLeadMinutes", 30, 1440, 120),
+      // só as opções da lista: 24h, 3h, 2h ou 1h antes
+      confirmationLeadMinutes: [1440, 180, 120, 60].includes(Number(str(fd, "confirmationLeadMinutes")))
+        ? Number(str(fd, "confirmationLeadMinutes"))
+        : user.barbershop.confirmationLeadMinutes,
       confirmationBatchMinutes: [0, 30, 60].includes(Number(str(fd, "confirmationBatchMinutes"))) ? Number(str(fd, "confirmationBatchMinutes")) : 0,
     },
   });
