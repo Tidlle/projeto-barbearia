@@ -61,7 +61,9 @@ export function PainelNav({ initialQueueCount }: { initialQueueCount: number }) 
     };
   }, []);
 
-  // contador também no título da aba (reaplicado quando o Next troca o título ao navegar)
+  // Contador também no título da aba. Aplicado uma vez após cada troca de página (o Next
+  // define o título da nova página logo depois da navegação). NÃO observar o <head> com
+  // MutationObserver: o Next reescreve o título e os dois entram em loop, travando a aba.
   useEffect(() => {
     const apply = () => {
       const base = document.title.replace(/^\(\d+\)\s*/, "");
@@ -69,10 +71,9 @@ export function PainelNav({ initialQueueCount }: { initialQueueCount: number }) 
       if (document.title !== want) document.title = want;
     };
     apply();
-    const obs = new MutationObserver(apply);
-    obs.observe(document.head, { subtree: true, childList: true, characterData: true });
-    return () => obs.disconnect();
-  }, [count]);
+    const t = setTimeout(apply, 400);
+    return () => clearTimeout(t);
+  }, [count, path]);
 
   return (
     <nav className="no-scrollbar flex gap-1 overflow-x-auto px-3 pb-3 md:flex-col md:px-3 md:pb-0">
